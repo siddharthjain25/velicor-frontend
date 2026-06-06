@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
-import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff } from 'lucide-react';
+import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap } from 'lucide-react';
 import { Badge } from './ui/Badge';
+import { searchLogs } from '../api';
 
 interface LiveTerminalProps {
   filterService?: string;
@@ -12,10 +13,12 @@ interface LiveTerminalProps {
 export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKey }) => {
   const [logs, setLogs] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   const [logsPerSec, setLogsPerSec] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const logCountRef = useRef(0);
+  const lastTsRef = useRef<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -28,6 +31,41 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
   useEffect(() => {
     let isIntentionalClose = false;
     let reconnectTimeout: number | null = null;
+    let pollingInterval: number | null = null;
+
+    const startPolling = () => {
+      if (pollingInterval) return;
+      setIsPolling(true);
+      console.log('Switching to polling mode (Vercel/Serverless Fallback)');
+      
+      const poll = async () => {
+        if (!apiKey) return;
+        try {
+          const results = await searchLogs(apiKey, {
+            limit: 50,
+            start_ts: lastTsRef.current || new Date(Date.now() - 5000).toISOString()
+          });
+
+          if (results && results.length > 0) {
+            // Sort by timestamp to ensure chronological order
+            const newLogs = results.filter((log: any) => 
+              !lastTsRef.current || new Date(log.timestamp) > new Date(lastTsRef.current)
+            ).reverse();
+
+            if (newLogs.length > 0) {
+              logCountRef.current += newLogs.length;
+              setLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+              lastTsRef.current = newLogs[newLogs.length - 1].timestamp;
+            }
+          }
+        } catch (err) {
+          console.error('Polling failed', err);
+        }
+      };
+
+      poll(); // Immediate first poll
+      pollingInterval = window.setInterval(poll, 2500);
+    };
 
     const connect = () => {
       if (reconnectTimeout) {
@@ -35,37 +73,57 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
         reconnectTimeout = null;
       }
 
+      if (isPolling) return; // Don't try WS if already polling
+
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
       const protocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:';
       const host = apiUrl.replace(/^https?:\/\//, '');
       const wsUrl = apiKey ? `${protocol}//${host}/api/v1/live?api_key=${apiKey}` : `${protocol}//${host}/api/v1/live`;
-      const socket = new WebSocket(wsUrl);
       
-      socket.onopen = () => {
-        if (isIntentionalClose) {
-          socket.close();
-          return;
-        }
-        setIsConnected(true);
-        console.log('Connected to live stream');
-      };
-      
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (filterService && data.service_name !== filterService) return;
-        logCountRef.current += 1;
-        setLogs((prev) => [...prev.slice(-99), data]);
-      };
-      
-      socket.onclose = () => {
-        setIsConnected(false);
-        if (!isIntentionalClose) {
-          console.log('Disconnected from live stream, reconnecting...');
-          reconnectTimeout = window.setTimeout(connect, 3000);
-        }
-      };
-      
-      socketRef.current = socket;
+      try {
+        const socket = new WebSocket(wsUrl);
+        
+        socket.onopen = () => {
+          if (isIntentionalClose) {
+            socket.close();
+            return;
+          }
+          setIsConnected(true);
+          setIsPolling(false);
+          console.log('Connected to live stream');
+        };
+        
+        socket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (filterService && data.service_name !== filterService) return;
+          logCountRef.current += 1;
+          setLogs((prev) => [...prev.slice(-99), data]);
+          lastTsRef.current = data.timestamp;
+        };
+        
+        socket.onclose = (event) => {
+          setIsConnected(false);
+          // If the connection was closed with a protocol error or if it's Vercel
+          // we switch to polling immediately. 1006 is "Abnormal Closure"
+          if (!isIntentionalClose) {
+            if (event.code === 1006 || window.location.hostname.includes('vercel.app')) {
+              startPolling();
+            } else {
+              console.log('Disconnected from live stream, reconnecting...');
+              reconnectTimeout = window.setTimeout(connect, 3000);
+            }
+          }
+        };
+
+        socket.onerror = () => {
+          // If WS fails (common on Vercel), fallback to polling
+          if (!isIntentionalClose) startPolling();
+        };
+        
+        socketRef.current = socket;
+      } catch (e) {
+        startPolling();
+      }
     };
 
     connect();
@@ -73,6 +131,7 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
     return () => {
       isIntentionalClose = true;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (pollingInterval) clearInterval(pollingInterval);
       socketRef.current?.close();
     };
   }, [filterService, apiKey]);
@@ -108,6 +167,10 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
               {isConnected ? (
                 <Badge variant="outline" className="border-green-500/50 text-green-500 bg-green-500/5 gap-1.5 px-2">
                   <Wifi className="w-3 h-3" /> <span className="hidden xs:inline">STREAMING</span>
+                </Badge>
+              ) : isPolling ? (
+                <Badge variant="outline" className="border-blue-500/50 text-blue-500 bg-blue-500/5 gap-1.5 px-2">
+                  <Zap className="w-3 h-3" /> <span className="hidden xs:inline">FAST POLLING</span>
                 </Badge>
               ) : (
                 <Badge variant="outline" className="border-red-500/50 text-red-500 bg-red-500/5 gap-1.5 px-2">
