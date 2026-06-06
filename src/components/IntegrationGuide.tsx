@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
-import { Terminal, Copy, Check, Code2, Cpu } from 'lucide-react';
+import { Terminal, Copy, Check, Code2, Cpu, AlertTriangle } from 'lucide-react';
 import { Badge } from './ui/Badge';
 
 interface IntegrationGuideProps {
@@ -47,59 +47,70 @@ export const IntegrationGuide: React.FC<IntegrationGuideProps> = ({ apiKey, serv
     },
     {
       id: 'python',
-      name: 'Python',
+      name: 'Python (Serverless Optimized)',
       language: 'python',
       icon: <Cpu className="w-4 h-4" />,
       code: `import requests
 import time
+import os
 
 def log_to_velicor(level, message, metadata=None):
     payload = {
         "level": level,
         "message": message,
         "timestamp": time.time(),
+        "service_name": "${serviceName}",
         "metadata": metadata or {}
     }
     headers = {"x-api-key": "${displayApiKey}"}
+    
+    # Note: On Vercel, this request must be synchronous to avoid freezing.
+    # On persistent servers, consider using a background queue.
     try:
-        requests.post("${baseUrl}/api/v1/ingest", json=payload, headers=headers, timeout=1)
+        requests.post("${baseUrl}/api/v1/ingest", json=payload, headers=headers, timeout=2)
     except Exception as e:
-        print(f"Failed to send log: {e}")
+        print(f"Velicor logging failed: {e}")
 
 # Usage
-log_to_velicor("INFO", "Order processed", {"service": "${serviceName}"})`
+log_to_velicor("INFO", "Order processed", {"order_id": 5521})`
     },
     {
       id: 'nodejs',
-      name: 'Node.js',
+      name: 'Node.js (Serverless Optimized)',
       language: 'javascript',
       icon: <Code2 className="w-4 h-4" />,
       code: `const axios = require('axios');
 
 const logToVelicor = async (level, message, metadata = {}) => {
+  const payload = {
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+    service_name: '${serviceName}',
+    ...metadata
+  };
+
   try {
-    await axios.post('${baseUrl}/api/v1/ingest', {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      ...metadata
-    }, {
-      headers: { 'x-api-key': '${displayApiKey}' }
+    // IMPORTANT: On Vercel/Serverless, you MUST 'await' this call 
+    // to ensure logs are sent before the function terminates.
+    await axios.post('${baseUrl}/api/v1/ingest', payload, {
+      headers: { 'x-api-key': '${displayApiKey}' },
+      timeout: 2000
     });
   } catch (err) {
-    console.error('Velicor logging failed', err.message);
+    console.error('Velicor logging failed:', err.message);
   }
 };
 
 // Usage
-logToVelicor('INFO', 'User logged in', { service: '${serviceName}' });`
+await logToVelicor('ERROR', 'Auth failure', { user: 'sid' });`
     }
   ];
 
   return (
     <div className="space-y-6">
-      <Card className="border-muted shadow-sm">
-        <CardHeader>
+      <Card className="border-muted shadow-sm overflow-hidden">
+        <CardHeader className="pb-6">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
               <Code2 className="w-5 h-5 text-primary" />
@@ -111,6 +122,16 @@ logToVelicor('INFO', 'User logged in', { service: '${serviceName}' });`
           </div>
         </CardHeader>
         <CardContent className="space-y-8">
+          <div className="p-4 rounded-xl bg-orange-500/[0.03] border border-orange-500/10 flex gap-3 items-start">
+            <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+               <p className="text-[11px] font-bold text-orange-700 uppercase tracking-wider">Serverless Warning</p>
+               <p className="text-[10px] text-orange-600/80 leading-relaxed">
+                 If your service runs on <strong>Vercel</strong> or AWS Lambda, you <strong>must</strong> wait for the logging request to finish (use synchronous requests or await) to prevent Vercel from freezing the process before logs are delivered.
+               </p>
+            </div>
+          </div>
+
           {snippets.map((snippet) => (
             <div key={snippet.id} className="space-y-3">
               <div className="flex items-center justify-between">
