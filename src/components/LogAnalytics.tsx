@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
-import { BarChart3, Activity, AlertCircle, Info, Flame } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { getServiceStats, getServices } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -37,7 +37,7 @@ export const LogAnalytics: React.FC<LogAnalyticsProps> = ({ serviceName }) => {
 
   if (loading) return <div className="p-10 text-center animate-pulse text-xs font-bold uppercase tracking-widest text-muted-foreground">Aggregating Metrics...</div>;
 
-  const totalLogs = Object.values(stats?.levels || {}).reduce((a: any, b: any) => a + b, 0);
+  const totalLogs = (Object.values(stats?.levels || {}) as number[]).reduce((a: number, b: number) => a + b, 0);
   const errorCount = (stats?.levels?.['ERROR'] || 0) + (stats?.levels?.['FATAL'] || 0);
   const errorRate = totalLogs > 0 ? ((errorCount / totalLogs) * 100).toFixed(1) : 0;
 
