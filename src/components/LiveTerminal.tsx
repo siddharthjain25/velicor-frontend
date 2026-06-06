@@ -75,6 +75,13 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
 
       if (isPolling) return; // Don't try WS if already polling
 
+      // Prevent the ugly red console error by detecting Vercel BEFORE trying WS
+      const isVercel = window.location.hostname.includes('vercel.app');
+      if (isVercel) {
+        startPolling();
+        return;
+      }
+
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
       const protocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:';
       const host = apiUrl.replace(/^https?:\/\//, '');
