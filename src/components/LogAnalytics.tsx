@@ -79,10 +79,10 @@ export const LogAnalytics: React.FC<LogAnalyticsProps> = ({ serviceName }) => {
             <div className="text-xl md:text-2xl font-black">{totalLogs.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card className={errorCount > 0 ? "bg-red-500/[0.02] border-red-500/10" : "bg-green-500/[0.02] border-green-500/10"}>
+        <Card className={errorCount > 0 ? "bg-red-500/[0.02] border-red-500/10" : "bg-emerald-500/[0.02] border-emerald-500/10"}>
           <CardContent className="p-4 md:p-5 space-y-1">
             <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Error Rate</span>
-            <div className={`text-xl md:text-2xl font-black ${errorCount > 0 ? 'text-red-600' : 'text-green-600'}`}>{errorRate}%</div>
+            <div className={`text-xl md:text-2xl font-black ${errorCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>{errorRate}%</div>
           </CardContent>
         </Card>
         <Card className="bg-blue-500/[0.02] border-blue-500/10">
@@ -129,11 +129,11 @@ export const LogAnalytics: React.FC<LogAnalyticsProps> = ({ serviceName }) => {
            </CardHeader>
            <CardContent className="p-0 h-[120px] md:h-[150px] relative bg-[#0a0a0a]/30">
               {stats?.series.length > 1 ? (
-                <svg className="w-full h-full" viewBox="0 0 1000 100" preserveAspectRatio="none">
+                <svg className="w-full h-full text-primary" viewBox="0 0 1000 100" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="var(--color-primary, #3b82f6)" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="var(--color-primary, #3b82f6)" stopOpacity="0" />
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <path
@@ -143,7 +143,7 @@ export const LogAnalytics: React.FC<LogAnalyticsProps> = ({ serviceName }) => {
                   <path
                     d={`M 0 ${100 - (stats.series[0].count / Math.max(...stats.series.map((x: any) => x.count))) * 90} ${stats.series.map((s: any, i: number) => `L ${(i / (stats.series.length - 1)) * 1000} ${100 - (s.count / Math.max(...stats.series.map((x: any) => x.count))) * 90}`).join(' ')}`}
                     fill="none"
-                    stroke="#3b82f6"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"

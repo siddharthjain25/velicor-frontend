@@ -3,7 +3,7 @@ import { searchLogs, type LogEntry } from '../api';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
-import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull } from 'lucide-react';
+import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull, Download } from 'lucide-react';
 import { Badge } from './ui/Badge';
 
 interface HistoricalLogsProps {
@@ -84,6 +84,55 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
       case 'FATAL': return <Skull className="w-3 h-3" />;
       case 'DEBUG': return <Bug className="w-3 h-3" />;
       default: return null;
+    }
+  };
+
+  const exportJSON = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `velicor_logs_${serviceName}_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      console.error("Failed to export JSON logs", err);
+      alert("Failed to export JSON logs");
+    }
+  };
+
+  const exportCSV = () => {
+    try {
+      const headers = ["Timestamp", "Level", "Status Code", "Message", "Metadata"];
+      
+      const rows = logs.map(log => {
+        const timestamp = log.timestamp || '';
+        const level = log.level || '';
+        const statusCode = log.status_code !== undefined ? log.status_code : '';
+        const message = (log.message || '').replace(/"/g, '""');
+        const metadata = log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : '';
+        
+        return [
+          `"${timestamp}"`,
+          `"${level}"`,
+          `"${statusCode}"`,
+          `"${message}"`,
+          `"${metadata}"`
+        ].join(',');
+      });
+      
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `velicor_logs_${serviceName}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      console.error("Failed to export CSV logs", err);
+      alert("Failed to export CSV logs");
     }
   };
 
@@ -212,6 +261,32 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
       </Card>
 
       <Card className="border-muted shadow-lg overflow-hidden min-h-[400px] md:min-h-[500px] rounded-2xl md:rounded-3xl">
+        {logs.length > 0 && (
+          <CardHeader className="border-b border-border/30 pb-4 px-4 md:px-6 flex flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-bold text-white">Telemetry Results</CardTitle>
+              <CardDescription className="text-[10px]">Found {logs.length} entries matching scan criteria</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={exportJSON}
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-[10px] font-bold rounded-full gap-1.5 border-muted hover:bg-primary/5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" /> Export JSON
+              </Button>
+              <Button 
+                onClick={exportCSV}
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-[10px] font-bold rounded-full gap-1.5 border-muted hover:bg-primary/5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-primary" /> Export CSV
+              </Button>
+            </div>
+          </CardHeader>
+        )}
         <CardContent className="p-0">
           {logs.length > 0 ? (
             <div className="divide-y divide-border/30">

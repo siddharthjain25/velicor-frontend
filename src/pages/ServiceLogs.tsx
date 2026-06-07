@@ -5,13 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { LiveTerminal } from '../components/LiveTerminal';
 import { HistoricalLogs } from '../components/HistoricalLogs';
 import { IntegrationGuide } from '../components/IntegrationGuide';
-import { WebhookManager } from '../components/WebhookManager';
 import { LogAnalytics } from '../components/LogAnalytics';
 import { Button } from '../components/ui/Button';
-import { ArrowLeft, Terminal, History, PlayCircle, Code2, BarChart3, Bell } from 'lucide-react';
+import { ArrowLeft, Terminal, History, PlayCircle, Code2, BarChart3 } from 'lucide-react';
 import { ApiKeyDisplay } from '../components/ApiKeyDisplay';
 
-type Tab = 'live' | 'history' | 'sdk' | 'analytics' | 'alerts';
+type Tab = 'live' | 'history' | 'sdk' | 'analytics';
 
 export const ServiceLogsPage: React.FC = () => {
   const { serviceName } = useParams<{ serviceName: string }>();
@@ -103,14 +102,6 @@ export const ServiceLogsPage: React.FC = () => {
         >
           <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4" /> Stats
         </Button>
-        <Button 
-          variant={activeTab === 'alerts' ? 'secondary' : 'ghost'} 
-          size="sm" 
-          onClick={() => setActiveTab('alerts')}
-          className="rounded-full gap-1.5 md:gap-2 px-3 md:px-4 whitespace-nowrap text-[10px] md:text-sm flex-grow sm:flex-grow-0"
-        >
-          <Bell className="w-3.5 h-3.5 md:w-4 md:h-4" /> Alerts
-        </Button>
       </div>
 
       <div className="flex flex-col space-y-6 md:space-y-8">
@@ -119,7 +110,6 @@ export const ServiceLogsPage: React.FC = () => {
           {activeTab === 'history' && <HistoricalLogs apiKey={apiKey} serviceName={serviceName || ''} />}
           {activeTab === 'sdk' && <IntegrationGuide apiKey={apiKey} serviceName={serviceName || ''} />}
           {activeTab === 'analytics' && <LogAnalytics serviceName={serviceName || ''} />}
-          {activeTab === 'alerts' && <WebhookManager serviceName={serviceName || ''} />}
         </main>
       </div>
     </div>

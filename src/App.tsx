@@ -6,6 +6,8 @@ import { Register } from './pages/Register'
 import { ServicesPage } from './pages/Services'
 import { ServiceLogsPage } from './pages/ServiceLogs'
 import { Profile } from './pages/Profile'
+import { Home } from './pages/Home'
+import { AlertsPage } from './pages/Alerts'
 import { Navbar } from './components/Navbar'
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -17,7 +19,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="container flex-grow animate-in fade-in duration-500 py-4">
+      <div className="container mx-auto px-4 md:px-6 flex-grow animate-in fade-in duration-500 py-4">
         <main>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -46,7 +48,15 @@ function AppContent() {
                 </PrivateRoute>
               } 
             />
-            <Route path="/" element={<Navigate to="/services" />} />
+            <Route 
+              path="/alerts" 
+              element={
+                <PrivateRoute>
+                  <AlertsPage />
+                </PrivateRoute>
+              } 
+            />
+            <Route path="/" element={<Home />} />
           </Routes>
         </main>
       </div>

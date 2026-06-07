@@ -71,48 +71,48 @@ export const ApiKeyDisplay: React.FC<ApiKeyDisplayProps> = ({ apiKey, label, var
       </div>
       
       <div className="relative group overflow-hidden bg-[#050505] rounded-2xl border-2 border-primary/10 hover:border-primary/40 transition-all shadow-2xl">
-        <div className="flex items-center px-6 h-16">
-          <div className="flex-grow overflow-hidden mr-4">
-            <code className={`font-mono text-lg font-black transition-all duration-300 tracking-wider ${isVisible ? 'text-primary' : 'text-primary/30'}`}>
+        <div className="flex items-center px-3 sm:px-6 h-12 sm:h-16 gap-2">
+          <div className="flex-grow overflow-hidden min-w-0 mr-1 sm:mr-4">
+            <code className={`font-mono text-xs sm:text-sm md:text-base font-black transition-all duration-300 tracking-wider truncate block w-full ${isVisible ? 'text-primary' : 'text-primary/30'}`}>
               {isVisible ? apiKey : maskedKey}
             </code>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {onReset && (
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors" 
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors cursor-pointer" 
                 onClick={(e) => { e.stopPropagation(); onReset(); }}
                 title="Reset API Key"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             )}
             <Button 
               variant="secondary" 
               size="icon" 
-              className="h-10 w-10 rounded-full hover:scale-105 active:scale-95 transition-all" 
+              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:scale-105 active:scale-95 transition-all cursor-pointer" 
               onClick={toggleVisibility}
             >
-              {isVisible ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {isVisible ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
             </Button>
             <Button 
               variant="default" 
               size="icon" 
-              className={`h-10 w-10 rounded-full hover:scale-105 active:scale-95 transition-all ${isCopied ? 'bg-green-500 border-green-500' : ''}`} 
+              className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:scale-105 active:scale-95 transition-all cursor-pointer ${isCopied ? 'bg-green-500 border-green-500' : ''}`} 
               onClick={handleCopy}
             >
-              {isCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+              {isCopied ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <Copy className="w-4 h-4 sm:w-5 sm:h-5" />}
             </Button>
           </div>
         </div>
         
         {/* Visual feedback for copying */}
         <div className={`absolute inset-0 bg-green-500 flex items-center justify-center transition-all duration-500 ease-out pointer-events-none ${isCopied ? 'translate-y-0' : 'translate-y-full'}`}>
-          <span className="text-white text-sm font-black uppercase tracking-[0.2em] flex items-center gap-3">
-            <Check className="w-6 h-6 stroke-[3px]" /> Key Secured to Clipboard
+          <span className="text-white text-xs sm:text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2 sm:gap-3">
+            <Check className="w-5 h-5 stroke-[3px]" /> Key Secured
           </span>
         </div>
       </div>

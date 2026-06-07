@@ -90,12 +90,12 @@ export const ServicesPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col space-y-6 md:space-y-8 max-w-6xl mx-auto w-full px-4 py-4 md:py-6">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 md:py-4">
+    <div className="flex flex-col space-y-6 md:space-y-8 max-w-6xl mx-auto w-full px-4 py-4 md:py-8 animate-in fade-in duration-300">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 border-b border-border/40">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Services</h1>
-          <p className="text-muted-foreground text-xs md:text-sm mt-1 flex items-center gap-2">
-            <Server className="w-4 h-4 text-primary" /> Active microservice fleet management
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">Service Directory</h1>
+          <p className="text-muted-foreground text-xs md:text-sm mt-0.5 flex items-center gap-2">
+            <Server className="w-4 h-4 text-primary" /> Manage and telemetry-provision your cloud infrastructure fleet
           </p>
         </div>
       </header>
@@ -103,25 +103,25 @@ export const ServicesPage: React.FC = () => {
       <div className="space-y-8 md:space-y-10">
         {/* Create Service Section */}
         <section className="space-y-4">
-          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Create New Service</h2>
-          <Card className="shadow-sm border-muted/60 overflow-hidden">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Create New Telemetry Service</h2>
+          <Card className="shadow-lg border-border/60 bg-[#0d1117]/30 overflow-hidden rounded-2xl">
             <CardContent className="p-4 md:p-6">
               <form onSubmit={handleCreateService} className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-grow">
                   <Input 
                     type="text" 
-                    placeholder="Service name (e.g. payment-api)" 
+                    placeholder="Service identifier (e.g. payment-gateway)" 
                     value={newServiceName}
                     onChange={(e) => setNewServiceName(e.target.value)}
                     required
-                    className="h-10 md:h-12 text-sm md:text-base"
+                    className="h-11 md:h-12 text-xs md:text-sm bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="h-10 md:h-12 px-6 md:px-8 font-bold text-sm md:text-base w-full sm:w-auto">
-                  Create Service <ChevronRight className="ml-2 w-4 h-4" />
+                <Button type="submit" className="h-11 md:h-12 px-6 md:px-8 font-bold text-xs md:text-sm w-full sm:w-auto rounded-xl cursor-pointer">
+                  Deploy Node <ChevronRight className="ml-2 w-4 h-4" />
                 </Button>
               </form>
-              {error && <p className="mt-3 text-xs md:text-sm text-destructive font-medium bg-destructive/10 p-2 rounded border border-destructive/20">{error}</p>}
+              {error && <p className="mt-3 text-xs text-red-400 font-semibold bg-red-500/10 p-3 rounded-xl border border-red-500/20">{error}</p>}
             </CardContent>
           </Card>
         </section>
@@ -143,7 +143,7 @@ export const ServicesPage: React.FC = () => {
               {services.map(s => (
                 <Card 
                   key={s._id} 
-                  className="group hover:border-primary/50 transition-all cursor-pointer shadow-sm hover:shadow-lg relative overflow-hidden"
+                  className="group bg-[#0d1117]/35 border-border/60 hover:border-primary/40 transition-all cursor-pointer shadow-sm hover:shadow-xl relative overflow-hidden rounded-2xl"
                   onClick={() => navigate(`/services/${s.name}?key=${s.secret_key}`)}
                 >
                   <CardContent className="p-4 md:p-6">

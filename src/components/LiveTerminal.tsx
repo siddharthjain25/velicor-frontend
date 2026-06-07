@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
-import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap } from 'lucide-react';
+import { Input } from './ui/Input';
+import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap, Play, Pause, Search } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import { searchLogs } from '../api';
 
@@ -12,13 +13,23 @@ interface LiveTerminalProps {
 
 export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKey }) => {
   const [logs, setLogs] = useState<any[]>([]);
+  const [accumulatedLogs, setAccumulatedLogs] = useState<any[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const [filterText, setFilterText] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [logsPerSec, setLogsPerSec] = useState(0);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const logCountRef = useRef(0);
   const lastTsRef = useRef<string | null>(null);
+  const isPausedRef = useRef(false);
+
+  // Sync ref to avoid stale closures in WS/polling callbacks
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -47,14 +58,16 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           });
 
           if (results && results.length > 0) {
-            // Sort by timestamp to ensure chronological order
             const newLogs = results.filter((log: any) => 
               !lastTsRef.current || new Date(log.timestamp) > new Date(lastTsRef.current)
             ).reverse();
 
             if (newLogs.length > 0) {
               logCountRef.current += newLogs.length;
-              setLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+              setAccumulatedLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+              if (!isPausedRef.current) {
+                setLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+              }
               lastTsRef.current = newLogs[newLogs.length - 1].timestamp;
             }
           }
@@ -63,7 +76,7 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
         }
       };
 
-      poll(); // Immediate first poll
+      poll();
       pollingInterval = window.setInterval(poll, 2500);
     };
 
@@ -73,14 +86,7 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
         reconnectTimeout = null;
       }
 
-      if (isPolling) return; // Don't try WS if already polling
-
-      // Prevent the ugly red console error by detecting Vercel BEFORE trying WS
-      // const isVercel = window.location.hostname.includes('vercel.app');
-      // if (isVercel) {
-      //   startPolling();
-      //   return;
-      // }
+      if (isPolling) return;
 
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
       const protocol = apiUrl.startsWith('https') ? 'wss:' : 'ws:';
@@ -104,14 +110,16 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           const data = JSON.parse(event.data);
           if (filterService && data.service_name !== filterService) return;
           logCountRef.current += 1;
-          setLogs((prev) => [...prev.slice(-99), data]);
+          
+          setAccumulatedLogs(prev => [...prev.slice(-99), data]);
+          if (!isPausedRef.current) {
+            setLogs(prev => [...prev.slice(-99), data]);
+          }
           lastTsRef.current = data.timestamp;
         };
         
         socket.onclose = (event) => {
           setIsConnected(false);
-          // If the connection was closed with a protocol error or if it's Vercel
-          // we switch to polling immediately. 1006 is "Abnormal Closure"
           if (!isIntentionalClose) {
             if (event.code === 1006 || window.location.hostname.includes('vercel.app')) {
               startPolling();
@@ -123,7 +131,6 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
         };
 
         socket.onerror = () => {
-          // If WS fails (common on Vercel), fallback to polling
           if (!isIntentionalClose) startPolling();
         };
         
@@ -144,26 +151,65 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
   }, [filterService, apiKey]);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && !isPaused) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs, isPaused]);
 
-  const clearLogs = () => setLogs([]);
+  const clearLogs = () => {
+    setLogs([]);
+    setAccumulatedLogs([]);
+  };
 
-  const getLevelColor = (level: string) => {
+  const handleTogglePause = () => {
+    if (isPaused) {
+      // Unpausing: sync visible logs with the accumulated buffer
+      setAccumulatedLogs(current => {
+        setLogs(current);
+        return current;
+      });
+    }
+    setIsPaused(!isPaused);
+  };
+
+  const getBadgeVariant = (level: string) => {
     switch (level.toUpperCase()) {
-      case 'ERROR': return 'text-red-400 font-black underline';
-      case 'WARN': return 'text-yellow-400 font-bold';
-      case 'DEBUG': return 'text-blue-400 italic';
-      case 'FATAL': return 'text-red-600 font-black bg-red-100 px-1';
-      default: return 'text-green-400';
+      case 'INFO': return 'info';
+      case 'WARN': return 'warning';
+      case 'ERROR': return 'destructive';
+      case 'FATAL': return 'destructive';
+      case 'DEBUG': return 'secondary';
+      default: return 'default';
     }
   };
 
+  // Perform client-side filter matching (supports Regex and Substring)
+  const filteredLogs = logs.filter(log => {
+    if (!filterText) return true;
+    try {
+      const regex = new RegExp(filterText, 'i');
+      return (
+        regex.test(log.message) || 
+        regex.test(log.level) || 
+        (log.service_name && regex.test(log.service_name))
+      );
+    } catch (e) {
+      const lowerQuery = filterText.toLowerCase();
+      return (
+        log.message.toLowerCase().includes(lowerQuery) ||
+        log.level.toLowerCase().includes(lowerQuery) ||
+        (log.service_name && log.service_name.toLowerCase().includes(lowerQuery))
+      );
+    }
+  });
+
+  const bufferedCount = Math.max(0, accumulatedLogs.length - logs.length);
+
   return (
     <Card className="flex flex-col h-[calc(100vh-180px)] md:h-[calc(100vh-250px)] min-h-[500px] md:min-h-[600px] shadow-sm border-muted overflow-hidden">
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+      <CardHeader className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pb-4">
+        
+        {/* Title & Connection Status */}
         <div className="space-y-1">
           <CardTitle className="text-lg font-bold flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2">
@@ -189,35 +235,84 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           </CardTitle>
           <CardDescription className="text-xs">Real-time authenticated ingestion</CardDescription>
         </div>
-        <Button onClick={clearLogs} variant="ghost" size="sm" className="h-8 w-full sm:w-auto text-muted-foreground hover:text-destructive rounded-full border border-muted sm:border-none">
-          <Trash2 className="w-4 h-4 mr-2" /> Clear Terminal
-        </Button>
+
+        {/* Live Controls (Pause, Search Filter, Clear) */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto">
+          {/* Regex Search Input */}
+          <div className="relative flex-grow sm:flex-grow-0 min-w-0">
+            <Search className="absolute left-3.5 top-2.5 w-3.5 h-3.5 text-muted-foreground/60" />
+            <Input 
+              placeholder="Filter regex (e.g. error|auth)..." 
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              className="h-8.5 pl-9 pr-4 text-xs rounded-full bg-zinc-950/40 border-border/40 focus:border-primary/50 transition-all font-mono min-w-full sm:min-w-[220px]"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* Pause/Play Button */}
+            <Button 
+              onClick={handleTogglePause}
+              variant={isPaused ? "secondary" : "outline"} 
+              size="sm" 
+              className="h-8.5 text-xs font-bold rounded-full gap-1.5 border-muted flex-grow sm:flex-grow-0 cursor-pointer"
+            >
+              {isPaused ? (
+                <>
+                  <Play className="w-3.5 h-3.5 text-emerald-400" /> 
+                  Resume {bufferedCount > 0 && <span className="ml-0.5 bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full text-[9px] font-black">{bufferedCount}</span>}
+                </>
+              ) : (
+                <>
+                  <Pause className="w-3.5 h-3.5 text-amber-400" /> 
+                  Pause Stream
+                </>
+              )}
+            </Button>
+
+            {/* Clear Button */}
+            <Button 
+              onClick={clearLogs} 
+              variant="ghost" 
+              size="sm" 
+              className="h-8.5 text-xs font-bold text-muted-foreground hover:text-destructive rounded-full border border-muted flex-grow sm:flex-grow-0 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" /> Clear
+            </Button>
+          </div>
+        </div>
+
       </CardHeader>
+      
       <CardContent className="p-0 border-t flex-grow overflow-hidden bg-[#0a0a0a]">
         <div 
           ref={scrollRef}
-          className="h-full overflow-y-auto p-3 md:p-4 font-mono text-[10px] md:text-xs space-y-1.5 scroll-smooth"
+          className="h-full overflow-y-auto p-3 md:p-4 font-mono text-[10px] md:text-xs space-y-1.5 scroll-smooth animate-in fade-in"
         >
-          {logs.length === 0 && (
+          {filteredLogs.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground/30 gap-3 animate-pulse">
               <Activity className="w-8 h-8" />
-              <span className="uppercase tracking-[0.2em] md:tracking-[0.3em] font-black text-[10px] md:text-sm">Awaiting Ingestion...</span>
+              <span className="uppercase tracking-[0.2em] md:tracking-[0.3em] font-black text-[10px] md:text-sm">
+                {filterText ? "No Matching Logs" : "Awaiting Ingestion..."}
+              </span>
             </div>
           )}
-          {logs.map((log, i) => (
-            <div key={i} className="flex flex-col xs:flex-row gap-1 xs:gap-3 hover:bg-white/5 p-1.5 rounded transition-colors group relative">
-              <div className="flex items-center gap-2 xs:block">
-                <span className="text-muted-foreground/40 select-none text-[9px] md:text-[10px]">
+          {filteredLogs.map((log, i) => (
+            <div key={i} className="flex flex-col xs:flex-row gap-2 xs:gap-4 hover:bg-white/5 p-1.5 rounded transition-colors group relative items-start xs:items-center">
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <span className="text-muted-foreground/40 select-none text-[9px] md:text-[10px] font-semibold w-12">
                   {new Date(log.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
-                <span className={`min-w-[45px] md:min-w-[50px] font-black uppercase text-[9px] md:text-[10px] ${getLevelColor(log.level)}`}>
-                  {log.level}
+                <span className="min-w-[50px] md:min-w-[55px] inline-block">
+                  <Badge variant={getBadgeVariant(log.level)} className="text-[8.5px] uppercase font-black px-1.5 py-0.5 border-none shadow-none leading-none select-none">
+                    {log.level}
+                  </Badge>
                 </span>
               </div>
               <span className="text-gray-300 flex-grow break-all leading-relaxed">{log.message}</span>
               {log.metadata && Object.keys(log.metadata).length > 0 && (
                 <div className="hidden sm:group-hover:block ml-auto opacity-40">
-                  <ShieldCheck className="w-3 h-3 text-primary" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                 </div>
               )}
             </div>

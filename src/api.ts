@@ -180,8 +180,16 @@ export async function getServiceStats(token: string, serviceId: string, interval
   return response.json();
 }
 
-export async function addWebhook(token: string, serviceId: string, webhook: { url: string, levels: string[], keywords?: string[] }) {
-  const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}/webhooks`, {
+export async function getWebhooks(token: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/webhooks/`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to fetch global webhooks');
+  return response.json();
+}
+
+export async function addWebhook(token: string, webhook: { url: string, levels: string[], keywords?: string[] }) {
+  const response = await fetch(`${BASE_URL}/api/v1/webhooks/`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -196,8 +204,8 @@ export async function addWebhook(token: string, serviceId: string, webhook: { ur
   return response.json();
 }
 
-export async function deleteWebhook(token: string, serviceId: string, webhookId: string) {
-  const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}/webhooks/${webhookId}`, {
+export async function deleteWebhook(token: string, webhookId: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/webhooks/${webhookId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` },
   });
@@ -205,8 +213,8 @@ export async function deleteWebhook(token: string, serviceId: string, webhookId:
   return true;
 }
 
-export async function updateWebhook(token: string, serviceId: string, webhookId: string, data: { url?: string, levels?: string[] }) {
-  const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}/webhooks/${webhookId}`, {
+export async function updateWebhook(token: string, webhookId: string, data: { url?: string, levels?: string[] }) {
+  const response = await fetch(`${BASE_URL}/api/v1/webhooks/${webhookId}`, {
     method: 'PATCH',
     headers: { 
       'Content-Type': 'application/json',
