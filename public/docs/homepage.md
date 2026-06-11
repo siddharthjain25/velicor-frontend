@@ -116,6 +116,25 @@ Velicor enforces industry-standard transport security and strict tenant isolatio
 
 ---
 
+## 🔄 Self-Monitoring & Telemetry Loops
+
+For advanced microservice environments, you can configure Velicor to self-ingest its own system logs (often referred to as **dogfooding**). By creating a dedicated `velicor-backend` service, you can route internal FastAPI operations directly into the logging dashboard.
+
+> [!WARNING]
+> **The Telemetry Death Loop**
+> Writing code that logs database updates inside the telemetry engine itself can trigger an infinite recursion loop:
+> 1. A log is ingested.
+> 2. The write operation logs a confirmation message.
+> 3. The confirmation message is ingested as a new log.
+> 4. The new write logs a confirmation message, repeating indefinitely.
+> 
+> To prevent this, always define **exclusion filters** in your backend logging handler. Ignore loggers originating from:
+> * `app.services.worker` (async ingestion queue workers)
+> * `app.db.postgres` & `app.db.redis` (database drivers & caches)
+
+---
+
 > [!TIP]
-> **Performance Advice**
-> For high-volume microservices deployed on persistent containers, batch logs in-memory and perform periodic bulk flushes every 2 seconds to optimize DB throughput.
+> **Developer Experience Tips**
+> * Use the **Searchable Service Dropdown** in the log viewer page to jump directly between backend nodes without losing your filters.
+> * For high-volume microservices, batch logs in-memory and perform periodic bulk flushes every 2 seconds to optimize DB throughput.

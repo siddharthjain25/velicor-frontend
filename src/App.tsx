@@ -19,7 +19,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 md:px-6 flex-grow animate-in fade-in duration-500 py-4">
+      <div className="w-full px-4 md:px-8 flex-grow animate-in fade-in duration-500 py-4">
         <main>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -61,7 +61,7 @@ function AppContent() {
         </main>
       </div>
       
-      <footer className="mt-auto max-w-7xl mx-auto w-full py-8 px-4 border-t border-border/40 text-center sm:text-left">
+      <footer className="mt-auto w-full py-8 px-4 md:px-8 border-t border-border/40 text-center sm:text-left">
         <p className="text-xs md:text-sm font-medium text-muted-foreground">Velicor Systems &copy; 2026. All systems operational.</p>
       </footer>
     </div>

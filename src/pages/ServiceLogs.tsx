@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { getServices, resetServiceKey } from '../api';
+import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { useAuth } from '../context/AuthContext';
 import { LiveTerminal } from '../components/LiveTerminal';
 import { HistoricalLogs } from '../components/HistoricalLogs';
@@ -19,6 +20,14 @@ export const ServiceLogsPage: React.FC = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('live');
+  const [services, setServices] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    getServices(token)
+      .then(data => setServices(data || []))
+      .catch(err => console.error('Failed to fetch services in logs page', err));
+  }, [token]);
 
   const handleResetKey = async () => {
     if (!token) return;
@@ -41,20 +50,27 @@ export const ServiceLogsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col space-y-4 md:space-y-6 max-w-7xl mx-auto w-full px-3 md:px-4 py-2 md:py-4">
+    <div className="flex flex-col space-y-4 md:space-y-6 w-full py-2 md:py-4">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 py-2 md:py-4">
-        <div className="flex items-center gap-3 md:gap-4">
+        <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
           <Button variant="outline" size="icon" onClick={() => navigate('/services')} className="shrink-0 h-8 w-8 md:h-9 md:w-9">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="overflow-hidden">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight truncate">{serviceName}</h1>
+          <div className="flex-grow md:flex-grow-0">
+            <div className="flex items-center gap-2.5">
+              <SearchableSelect
+                options={services.map(s => ({ id: s._id, name: s.name, secret_key: s.secret_key }))}
+                selectedValue={serviceName || ''}
+                onChange={(option) => {
+                  navigate(`/services/${option.name}?key=${option.secret_key}`);
+                }}
+                placeholder="Select service..."
+              />
               <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${activeTab === 'live' ? 'bg-green-500/10 text-green-600 animate-pulse' : 'bg-muted text-muted-foreground'}`}>
                 <div className={`w-1.5 h-1.5 rounded-full ${activeTab === 'live' ? 'bg-green-500' : 'bg-muted-foreground'}`} /> <span className="hidden xs:inline">{activeTab === 'live' ? 'Live' : 'History'}</span>
               </span>
             </div>
-            <p className="text-muted-foreground text-[10px] md:text-xs flex items-center gap-2 mt-0.5">
+            <p className="text-muted-foreground text-[10px] md:text-xs flex items-center gap-2 mt-1 ml-1.5">
               <Terminal className="w-3 h-3" /> {activeTab === 'live' ? 'Real-time telemetry' : 'Database archives'}
             </p>
           </div>

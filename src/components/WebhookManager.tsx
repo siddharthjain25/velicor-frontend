@@ -4,8 +4,9 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Bell, Trash2, Plus, Globe, AlertTriangle, Settings2, Edit2, X, Check } from 'lucide-react';
 import { Badge } from './ui/Badge';
-import { addWebhook, deleteWebhook, updateWebhook, getWebhooks } from '../api';
+import { addWebhook, deleteWebhook, updateWebhook, getWebhooks, getServices } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { SearchableMultiSelect } from './ui/SearchableMultiSelect';
 
 const AVAILABLE_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
 
@@ -17,10 +18,14 @@ export const WebhookManager: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editUrl, setEditUrl] = useState('');
   const [editLevels, setEditLevels] = useState<string[]>([]);
+  const [servicesList, setServicesList] = useState<any[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [editServices, setEditServices] = useState<string[]>([]);
   const { token } = useAuth();
 
   useEffect(() => {
     fetchWebhooks();
+    fetchServices();
   }, [token]);
 
   const fetchWebhooks = async () => {
@@ -34,6 +39,18 @@ export const WebhookManager: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchServices = async () => {
+    if (!token) return;
+    try {
+      const data = await getServices(token);
+      setServicesList(data || []);
+    } catch (err) {
+      console.error('Failed to fetch services', err);
+    }
+  };
+
+
 
   const toggleLevel = (level: string, isEdit: boolean = false) => {
     const setter = isEdit ? setEditLevels : setSelectedLevels;
@@ -53,11 +70,13 @@ export const WebhookManager: React.FC = () => {
     try {
       const nw = await addWebhook(token, { 
         url: newUrl, 
-        levels: selectedLevels 
+        levels: selectedLevels,
+        services: selectedServices.length > 0 ? selectedServices : undefined
       });
       setWebhooks([...webhooks, nw]);
       setNewUrl('');
       setSelectedLevels(["ERROR", "FATAL"]);
+      setSelectedServices([]);
     } catch (err: any) {
       alert(err.message);
     }
@@ -68,9 +87,10 @@ export const WebhookManager: React.FC = () => {
     try {
       await updateWebhook(token, webhookId, { 
         url: editUrl, 
-        levels: editLevels 
+        levels: editLevels,
+        services: editServices.length > 0 ? editServices : undefined
       });
-      setWebhooks(webhooks.map(w => w.id === webhookId ? { ...w, url: editUrl, levels: editLevels } : w));
+      setWebhooks(webhooks.map(w => w.id === webhookId ? { ...w, url: editUrl, levels: editLevels, services: editServices } : w));
       setEditingId(null);
     } catch (err: any) {
       alert(err.message);
@@ -91,6 +111,7 @@ export const WebhookManager: React.FC = () => {
     setEditingId(webhook.id);
     setEditUrl(webhook.url);
     setEditLevels(webhook.levels);
+    setEditServices(webhook.services || []);
   };
 
   if (loading) return <div className="p-4 text-center text-xs animate-pulse">Loading webhooks...</div>;
@@ -150,6 +171,21 @@ export const WebhookManager: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {servicesList.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                  <Settings2 className="w-3 h-3" /> Target Services (Optional)
+                </label>
+                <SearchableMultiSelect
+                  options={servicesList.map(s => ({ id: s._id, name: s.name }))}
+                  selectedValues={selectedServices}
+                  onChange={setSelectedServices}
+                  placeholder="All services (click to filter...)"
+                />
+                <p className="text-[9px] text-muted-foreground/60 italic ml-1">If no services are selected, this alert will trigger for all services.</p>
+              </div>
+            )}
           </form>
         )}
 
@@ -192,6 +228,18 @@ export const WebhookManager: React.FC = () => {
                         ))}
                       </div>
                    </div>
+
+                   {servicesList.length > 0 && (
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest">Update Services (Optional)</label>
+                         <SearchableMultiSelect
+                           options={servicesList.map(s => ({ id: s._id, name: s.name }))}
+                           selectedValues={editServices}
+                           onChange={setEditServices}
+                           placeholder="All services (click to filter...)"
+                         />
+                      </div>
+                   )}
                    <div className="flex gap-2 justify-end pt-2">
                       <Button variant="ghost" size="sm" onClick={() => setEditingId(null)} className="h-8 text-xs cursor-pointer">
                         <X className="w-3.5 h-3.5 mr-1" /> Cancel
@@ -213,6 +261,17 @@ export const WebhookManager: React.FC = () => {
                           {l}
                         </Badge>
                       ))}
+                      {webhook.services && webhook.services.length > 0 ? (
+                        webhook.services.map((s: string) => (
+                          <Badge key={s} variant="info" className="text-[8px] py-0 px-2 border-none shadow-none uppercase font-bold">
+                            {s}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="secondary" className="text-[8px] py-0 px-2 border-none shadow-none uppercase font-bold text-muted-foreground/60 bg-muted/20">
+                          All Services
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">

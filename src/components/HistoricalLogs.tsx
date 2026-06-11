@@ -196,10 +196,15 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
                   <Hash className="w-3 h-3" /> Status Code
                 </label>
                 <Input 
-                  type="number" 
+                  type="text" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="e.g. 200, 404, 500" 
                   value={statusCode}
-                  onChange={(e) => setStatusCode(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setStatusCode(val);
+                  }}
                   className="h-10 md:h-11 rounded-full bg-background/50 border-input shadow-none text-xs md:text-sm"
                 />
               </div>
@@ -290,11 +295,26 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
         <CardContent className="p-0">
           {logs.length > 0 ? (
             <div className="divide-y divide-border/30">
-              {logs.map((log, i) => (
-                <div 
-                  key={i} 
-                  className={`group transition-all hover:bg-primary/[0.03] ${expandedLog === i ? 'bg-primary/[0.05]' : ''}`}
-                >
+              {logs.map((log, i) => {
+                let levelBorderClass = "border-l-3 border-l-zinc-700/30";
+                if (log.level) {
+                  const lvl = log.level.toUpperCase();
+                  if (lvl.includes("ERR") || lvl.includes("FAIL") || lvl.includes("CRIT") || lvl.includes("FATAL")) {
+                    levelBorderClass = "border-l-3 border-l-red-500 bg-red-950/[0.07] hover:bg-red-950/[0.12]";
+                  } else if (lvl.includes("WARN")) {
+                    levelBorderClass = "border-l-3 border-l-amber-500 bg-amber-950/[0.07] hover:bg-amber-950/[0.12]";
+                  } else if (lvl.includes("INFO")) {
+                    levelBorderClass = "border-l-3 border-l-blue-500 bg-blue-950/[0.04] hover:bg-blue-950/[0.08]";
+                  } else if (lvl.includes("DEB")) {
+                    levelBorderClass = "border-l-3 border-l-zinc-500/50 bg-zinc-900/[0.04] hover:bg-zinc-900/[0.08]";
+                  }
+                }
+                
+                return (
+                  <div 
+                    key={i} 
+                    className={`group transition-all ${levelBorderClass} ${expandedLog === i ? 'bg-zinc-900/[0.3]' : ''}`}
+                  >
                   <div 
                     className="p-3 md:p-4 cursor-pointer flex items-start gap-2 md:gap-4"
                     onClick={() => setExpandedLog(expandedLog === i ? null : i)}
@@ -331,7 +351,7 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
                     </div>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
           ) : (
             <div className="py-20 md:py-32 flex flex-col items-center justify-center gap-4 text-muted-foreground italic px-4">

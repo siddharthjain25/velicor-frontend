@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap, Play, Pause, Search } from 'lucide-react';
+import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap, Play, Pause, Search, ChevronRight } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import { searchLogs } from '../api';
 
@@ -19,6 +19,11 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
   const [isConnected, setIsConnected] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [logsPerSec, setLogsPerSec] = useState(0);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  const toggleExpand = (id: string) => {
+    setExpandedLogId(prev => prev === id ? null : id);
+  };
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -63,12 +68,16 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
             ).reverse();
 
             if (newLogs.length > 0) {
-              logCountRef.current += newLogs.length;
-              setAccumulatedLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+              const newLogsWithId = newLogs.map((log: any) => ({
+                ...log,
+                _client_id: log._client_id || Math.random().toString(36).substring(2, 9)
+              }));
+              logCountRef.current += newLogsWithId.length;
+              setAccumulatedLogs(prev => [...prev.slice(-(100 - newLogsWithId.length)), ...newLogsWithId]);
               if (!isPausedRef.current) {
-                setLogs(prev => [...prev.slice(-(100 - newLogs.length)), ...newLogs]);
+                setLogs(prev => [...prev.slice(-(100 - newLogsWithId.length)), ...newLogsWithId]);
               }
-              lastTsRef.current = newLogs[newLogs.length - 1].timestamp;
+              lastTsRef.current = newLogsWithId[newLogsWithId.length - 1].timestamp;
             }
           }
         } catch (err) {
@@ -111,9 +120,13 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           if (filterService && data.service_name !== filterService) return;
           logCountRef.current += 1;
           
-          setAccumulatedLogs(prev => [...prev.slice(-99), data]);
+          const logWithId = {
+            ...data,
+            _client_id: data._client_id || Math.random().toString(36).substring(2, 9)
+          };
+          setAccumulatedLogs(prev => [...prev.slice(-99), logWithId]);
           if (!isPausedRef.current) {
-            setLogs(prev => [...prev.slice(-99), data]);
+            setLogs(prev => [...prev.slice(-99), logWithId]);
           }
           lastTsRef.current = data.timestamp;
         };
@@ -297,26 +310,104 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
               </span>
             </div>
           )}
-          {filteredLogs.map((log, i) => (
-            <div key={i} className="flex flex-col xs:flex-row gap-2 xs:gap-4 hover:bg-white/5 p-1.5 rounded transition-colors group relative items-start xs:items-center">
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <span className="text-muted-foreground/40 select-none text-[9px] md:text-[10px] font-semibold w-12">
-                  {new Date(log.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-                <span className="min-w-[50px] md:min-w-[55px] inline-block">
-                  <Badge variant={getBadgeVariant(log.level)} className="text-[8.5px] uppercase font-black px-1.5 py-0.5 border-none shadow-none leading-none select-none">
-                    {log.level}
-                  </Badge>
-                </span>
-              </div>
-              <span className="text-gray-300 flex-grow break-all leading-relaxed">{log.message}</span>
-              {log.metadata && Object.keys(log.metadata).length > 0 && (
-                <div className="hidden sm:group-hover:block ml-auto opacity-40">
-                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+          {filteredLogs.map((log, i) => {
+            const logId = log._client_id || `${log.timestamp}-${i}`;
+            const isExpanded = expandedLogId === logId;
+            
+            let levelBorderClass = "border-l-3 border-l-zinc-700/30";
+            if (log.level) {
+              const lvl = log.level.toUpperCase();
+              if (lvl.includes("ERR") || lvl.includes("FAIL") || lvl.includes("CRIT") || lvl.includes("FATAL")) {
+                levelBorderClass = "border-l-3 border-l-red-500 bg-red-950/[0.07] hover:bg-red-950/[0.12]";
+              } else if (lvl.includes("WARN")) {
+                levelBorderClass = "border-l-3 border-l-amber-500 bg-amber-950/[0.07] hover:bg-amber-950/[0.12]";
+              } else if (lvl.includes("INFO")) {
+                levelBorderClass = "border-l-3 border-l-blue-500 bg-blue-950/[0.04] hover:bg-blue-950/[0.08]";
+              } else if (lvl.includes("DEB")) {
+                levelBorderClass = "border-l-3 border-l-zinc-500/50 bg-zinc-900/[0.04] hover:bg-zinc-900/[0.08]";
+              }
+            }
+            
+            return (
+              <div key={logId} className={`border border-transparent hover:border-zinc-800/80 rounded transition-all overflow-hidden mb-1.5 ${levelBorderClass}`}>
+                <div 
+                  onClick={() => toggleExpand(logId)}
+                  className="flex flex-col xs:flex-row gap-2 xs:gap-4 p-2 rounded transition-colors group relative items-start xs:items-center cursor-pointer select-none"
+                >
+                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                    <span className="text-muted-foreground/30 group-hover:text-primary transition-colors">
+                      <ChevronRight className={`w-3.5 h-3.5 transform transition-transform ${isExpanded ? 'rotate-90 text-primary' : ''}`} />
+                    </span>
+                    <span className="text-muted-foreground/40 select-none text-[9px] md:text-[10px] font-semibold w-12">
+                      {new Date(log.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <span className="min-w-[50px] md:min-w-[55px] inline-block">
+                      <Badge variant={getBadgeVariant(log.level)} className="text-[8.5px] uppercase font-black px-1.5 py-0.5 border-none shadow-none leading-none select-none">
+                        {log.level}
+                      </Badge>
+                    </span>
+                  </div>
+                  <span className="text-gray-300 flex-grow break-all leading-relaxed pr-8">{log.message}</span>
+                  {log.metadata && Object.keys(log.metadata).length > 0 && (
+                    <div className="flex items-center gap-1 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span className="text-[8.5px] font-bold hidden sm:inline tracking-wider">META</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {isExpanded && (
+                  <div className="p-3.5 bg-[#0d0d0d] border-t border-zinc-900/60 text-gray-400 text-[10px] md:text-xs space-y-3.5 animate-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Left: Detailed Metadata info */}
+                      <div className="space-y-2.5">
+                        <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider">Log Parameters</div>
+                        <div className="space-y-1.5 font-mono">
+                          <div className="flex items-start">
+                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Timestamp:</span>
+                            <span className="text-gray-300 break-all">{log.timestamp}</span>
+                          </div>
+                          <div className="flex items-start">
+                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Level:</span>
+                            <span className="text-gray-300 break-all uppercase font-bold">{log.level}</span>
+                          </div>
+                          <div className="flex items-start">
+                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Service:</span>
+                            <span className="text-gray-300 break-all">{log.service_name || 'unknown'}</span>
+                          </div>
+                          {log.status_code !== undefined && log.status_code !== null && (
+                            <div className="flex items-start">
+                              <span className="text-muted-foreground/50 w-24 flex-shrink-0">Status Code:</span>
+                              <span className={`font-bold ${log.status_code >= 400 ? 'text-red-400' : 'text-emerald-400'}`}>{log.status_code}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Raw JSON payload with copy button */}
+                      <div className="space-y-2">
+                        <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider flex items-center justify-between">
+                          <span>Raw JSON Payload</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(JSON.stringify(log, null, 2));
+                            }}
+                            className="text-[9px] text-primary hover:text-primary-hover hover:underline font-bold cursor-pointer"
+                          >
+                            Copy Payload
+                          </button>
+                        </div>
+                        <pre className="p-3 rounded bg-zinc-950/80 border border-zinc-900 text-[9.5px] leading-relaxed text-zinc-300 max-h-[160px] overflow-y-auto font-mono scrollbar-thin select-text">
+                          {JSON.stringify(log, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

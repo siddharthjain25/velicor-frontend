@@ -188,7 +188,7 @@ export async function getWebhooks(token: string) {
   return response.json();
 }
 
-export async function addWebhook(token: string, webhook: { url: string, levels: string[], keywords?: string[] }) {
+export async function addWebhook(token: string, webhook: { url: string, levels: string[], keywords?: string[], services?: string[] }) {
   const response = await fetch(`${BASE_URL}/api/v1/webhooks/`, {
     method: 'POST',
     headers: { 
@@ -213,7 +213,7 @@ export async function deleteWebhook(token: string, webhookId: string) {
   return true;
 }
 
-export async function updateWebhook(token: string, webhookId: string, data: { url?: string, levels?: string[] }) {
+export async function updateWebhook(token: string, webhookId: string, data: { url?: string, levels?: string[], services?: string[] }) {
   const response = await fetch(`${BASE_URL}/api/v1/webhooks/${webhookId}`, {
     method: 'PATCH',
     headers: { 

@@ -49,8 +49,9 @@ export const ServicesPage: React.FC = () => {
 
   const handleUpdateRetention = async (serviceId: string) => {
     if (!token) return;
+    const days = Math.max(1, Math.min(365, tempRetention || 30));
     try {
-      await updateService(token, serviceId, { retention_days: tempRetention });
+      await updateService(token, serviceId, { retention_days: days });
       setEditingRetention(null);
       fetchServices();
     } catch (err: any) {
@@ -150,45 +151,54 @@ export const ServicesPage: React.FC = () => {
                     <div className="flex items-start justify-between mb-4 md:mb-6">
                       <div className="overflow-hidden mr-2">
                         <span className="font-bold text-lg md:text-xl tracking-tight group-hover:text-primary transition-colors truncate block">{s.name}</span>
-                        <div className="flex items-center gap-1.5 mt-1">
-                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                           <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active</span>
+                        <div className="flex flex-wrap items-center gap-3 mt-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active</span>
+                          </div>
+                          
+                          {editingRetention === s._id ? (
+                            <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2 py-0.5 border border-border/50 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <input 
+                                type="text" 
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                className="w-8 bg-transparent text-[10px] font-bold outline-none text-white font-mono"
+                                value={tempRetention || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9]/g, '');
+                                  setTempRetention(val ? parseInt(val) : 0);
+                                }}
+                                autoFocus
+                              />
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateRetention(s._id);
+                                }}
+                                className="p-0.5 hover:text-green-500 transition-colors cursor-pointer"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              className="flex items-center gap-1 px-2 py-0.5 bg-primary/5 rounded-full hover:bg-primary/10 border border-primary/10 transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingRetention(s._id);
+                                setTempRetention(s.retention_days);
+                              }}
+                            >
+                              <Clock className="w-3 h-3 text-primary/60" />
+                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-primary/80">{s.retention_days}D Retention</span>
+                              <Edit2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-                        {editingRetention === s._id ? (
-                          <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2 py-1 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-                            <Clock className="w-3 h-3 text-muted-foreground" />
-                            <input 
-                              type="number" 
-                              className="w-10 bg-transparent text-[10px] font-bold outline-none"
-                              value={tempRetention}
-                              onChange={(e) => setTempRetention(parseInt(e.target.value))}
-                              min="1"
-                              max="365"
-                              autoFocus
-                            />
-                            <button 
-                              onClick={() => handleUpdateRetention(s._id)}
-                              className="p-0.5 hover:text-green-500 transition-colors"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <div 
-                            className="flex items-center gap-1 px-2.5 py-1 bg-primary/5 rounded-full hover:bg-primary/10 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingRetention(s._id);
-                              setTempRetention(s.retention_days);
-                            }}
-                          >
-                            <Clock className="w-3 h-3 text-primary/60" />
-                            <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-primary/80">{s.retention_days}D</span>
-                            <Edit2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
-                          </div>
-                        )}
                         <Button 
                           variant="ghost" 
                           size="icon" 

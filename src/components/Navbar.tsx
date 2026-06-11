@@ -27,8 +27,8 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full px-4">
-      <div className="max-w-7xl mx-auto flex h-16 items-center justify-between">
+    <nav className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full px-4 md:px-8">
+      <div className="w-full flex h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-8">
           <Link to="/" className="flex items-center gap-2 transition-all hover:opacity-80">
             <div className="bg-primary p-1.5 rounded-lg">
