@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { register as apiRegister } from '../api';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card';
-import { Terminal, KeyRound, User, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { KeyRound, User, AlertCircle, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 export const Register: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -14,6 +14,7 @@ export const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,9 +65,7 @@ export const Register: React.FC = () => {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center pt-8 pb-2">
-          <div className="bg-primary p-2.5 rounded-xl mb-3 shadow-lg shadow-primary/10">
-            <Terminal className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Velicor Logo" className="w-12 h-12 object-contain rounded-xl mb-3 shadow-lg shadow-primary/10" />
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider mb-2">
             <Sparkles className="w-3 h-3" /> System Enrollment
           </div>
@@ -133,14 +132,23 @@ export const Register: React.FC = () => {
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
                 <KeyRound className="w-3.5 h-3.5 text-muted-foreground/60" /> Password
               </label>
-              <Input 
-                type="password" 
-                placeholder="••••••••"
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs"
-              />
+              <div className="relative flex items-center">
+                <Input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••"
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs w-full pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
             
             <Button 

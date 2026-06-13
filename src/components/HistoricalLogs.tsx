@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { searchLogs, type LogEntry } from '../api';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
 import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull, Download } from 'lucide-react';
-import { Badge } from './ui/Badge';
+import { Badge } from './ui/badge';
+import { useCustomDialog } from '../context/DialogContext';
 
 interface HistoricalLogsProps {
   apiKey: string;
@@ -15,6 +16,7 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
+  const customDialog = useCustomDialog();
   
   // Filters
   const [level, setLevel] = useState('');
@@ -51,7 +53,10 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
       setLogs(results);
     } catch (err) {
       console.error(err);
-      alert('Search failed');
+      await customDialog.alert({
+        title: "Search Failed",
+        description: 'Failed to retrieve logs based on search query.',
+      });
     } finally {
       setLoading(false);
     }
@@ -87,7 +92,7 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
     }
   };
 
-  const exportJSON = () => {
+  const exportJSON = async () => {
     try {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -98,11 +103,14 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
       downloadAnchor.remove();
     } catch (err) {
       console.error("Failed to export JSON logs", err);
-      alert("Failed to export JSON logs");
+      await customDialog.alert({
+        title: "Export Error",
+        description: "Failed to export JSON logs",
+      });
     }
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     try {
       const headers = ["Timestamp", "Level", "Status Code", "Message", "Metadata"];
       
@@ -132,7 +140,10 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
       downloadAnchor.remove();
     } catch (err) {
       console.error("Failed to export CSV logs", err);
-      alert("Failed to export CSV logs");
+      await customDialog.alert({
+        title: "Export Error",
+        description: "Failed to export CSV logs",
+      });
     }
   };
 

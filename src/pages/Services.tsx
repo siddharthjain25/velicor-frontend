@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getServices, createService, deleteService, resetServiceKey, updateService, getMe, type Service, type User } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardContent } from '../components/ui/card';
 import { Server, ChevronRight, Trash2, Clock, Check, Edit2 } from 'lucide-react';
-import { Badge } from '../components/ui/Badge';
+import { Badge } from '../components/ui/badge';
 import { ApiKeyDisplay } from '../components/ApiKeyDisplay';
 import { OtpInput } from '../components/OtpInput';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '../components/ui/dialog';
+import { useCustomDialog } from '../context/DialogContext';
 
 export const ServicesPage: React.FC = () => {
+  const customDialog = useCustomDialog();
   const [services, setServices] = useState<Service[]>([]);
   const [newServiceName, setNewServiceName] = useState('');
   const [error, setError] = useState('');
@@ -106,7 +109,12 @@ export const ServicesPage: React.FC = () => {
   const handleResetServiceKey = async (serviceId: string, serviceName: string) => {
     if (!token) return;
     
-    const confirmed = window.confirm(`Are you sure you want to reset the API Key for "${serviceName}"? Existing services using the old key will stop being able to ingest logs.`);
+    const confirmed = await customDialog.confirm({
+      title: "Reset API Key",
+      description: `Are you sure you want to reset the API Key for "${serviceName}"? Existing services using the old key will stop being able to ingest logs.`,
+      confirmLabel: "Reset Key",
+      cancelLabel: "Cancel",
+    });
     
     if (confirmed) {
       try {
@@ -146,7 +154,7 @@ export const ServicesPage: React.FC = () => {
                     className="h-11 md:h-12 text-xs md:text-sm bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl"
                   />
                 </div>
-                <Button type="submit" className="h-11 md:h-12 px-6 md:px-8 font-bold text-xs md:text-sm w-full sm:w-auto rounded-xl cursor-pointer">
+                <Button type="submit" className="h-11 md:h-12 px-6 md:px-8 font-bold text-xs md:text-sm w-full sm:w-auto rounded-full cursor-pointer">
                   Deploy Node <ChevronRight className="ml-2 w-4 h-4" />
                 </Button>
               </form>
@@ -263,97 +271,105 @@ export const ServicesPage: React.FC = () => {
         </section>
       </div>
 
-      {deletingService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#0d1117]/95 border border-border/80 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-border/40 bg-[#161b22]/30 flex items-center gap-3">
-              <div className="p-2 bg-destructive/15 rounded-xl border border-destructive/20 text-destructive">
-                <Trash2 className="w-5 h-5 text-red-500" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm tracking-tight text-white">Delete Telemetry Service</h3>
-                <p className="text-[11px] text-muted-foreground">This action is irreversible and permanent.</p>
-              </div>
+      <Dialog 
+        open={!!deletingService} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingService(null);
+            setConfirmName('');
+            setTwoFactorCode('');
+            setDeleteError('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-[#0d1117]/95 border border-border/80 p-0 overflow-hidden" showCloseButton={false}>
+          {/* Header */}
+          <div className="px-6 py-5 border-b border-border/40 bg-[#161b22]/30 flex items-center gap-3">
+            <div className="p-2 bg-destructive/15 rounded-xl border border-destructive/20 text-destructive">
+              <Trash2 className="w-5 h-5 text-red-500" />
             </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-5">
-              <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl space-y-1 text-[11px] text-red-400/90 leading-relaxed">
-                <p className="font-bold text-red-500 flex items-center gap-1.5 uppercase tracking-wide">
-                  ⚠️ Warning
-                </p>
-                <p>
-                  Deleting <strong>{deletingService.name}</strong> will permanently remove all associated log data, purge all ingested archives, and invalidate the service credentials.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
-                  Confirm Service Name
-                </label>
-                <p className="text-[10px] text-muted-foreground italic">
-                  To proceed, please type <span className="font-mono text-white bg-zinc-800 px-1 rounded">{deletingService.name}</span>:
-                </p>
-                <Input
-                  type="text"
-                  placeholder={deletingService.name}
-                  value={confirmName}
-                  onChange={(e) => setConfirmName(e.target.value)}
-                  className="bg-zinc-950/50 border-border/40 focus:border-red-500/50 rounded-xl h-11 text-xs"
-                />
-              </div>
-
-              {show2FAField && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
-                    Two-Factor OTP Code
-                  </label>
-                  <p className="text-[10px] text-muted-foreground italic mb-2">
-                    Enter the 6-digit verification code from Google Authenticator:
-                  </p>
-                  <OtpInput
-                    value={twoFactorCode}
-                    onChange={setTwoFactorCode}
-                    disabled={isDeleting}
-                  />
-                </div>
-              )}
-
-              {deleteError && (
-                <p className="text-xs text-red-400 font-semibold bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                  {deleteError}
-                </p>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 bg-[#161b22]/20 border-t border-border/40 flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setDeletingService(null);
-                  setConfirmName('');
-                  setTwoFactorCode('');
-                  setDeleteError('');
-                }}
-                disabled={isDeleting}
-                className="rounded-xl h-10 px-4 text-xs font-bold text-muted-foreground cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={executeDeleteService}
-                disabled={isDeleting || confirmName !== deletingService.name || (show2FAField && twoFactorCode.length !== 6)}
-                className="rounded-xl h-10 px-4 text-xs font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white cursor-pointer"
-              >
-                {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
-              </Button>
+            <div>
+              <DialogTitle className="font-bold text-sm tracking-tight text-white">Delete Telemetry Service</DialogTitle>
+              <DialogDescription className="text-[11px] text-muted-foreground mt-0.5">This action is irreversible and permanent.</DialogDescription>
             </div>
           </div>
-        </div>
-      )}
+
+          {/* Content */}
+          <div className="p-6 space-y-5">
+            <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl space-y-1 text-[11px] text-red-400/90 leading-relaxed">
+              <p className="font-bold text-red-500 flex items-center gap-1.5 uppercase tracking-wide">
+                ⚠️ Warning
+              </p>
+              <p>
+                Deleting <strong>{deletingService?.name}</strong> will permanently remove all associated log data, purge all ingested archives, and invalidate the service credentials.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
+                Confirm Service Name
+              </label>
+              <p className="text-[10px] text-muted-foreground italic">
+                To proceed, please type <span className="font-mono text-white bg-zinc-800 px-1 rounded">{deletingService?.name}</span>:
+              </p>
+              <Input
+                type="text"
+                placeholder={deletingService?.name}
+                value={confirmName}
+                onChange={(e) => setConfirmName(e.target.value)}
+                className="bg-zinc-950/50 border-border/40 focus:border-red-500/50 rounded-xl h-11 text-xs"
+              />
+            </div>
+
+            {show2FAField && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
+                  Two-Factor OTP Code
+                </label>
+                <p className="text-[10px] text-muted-foreground italic mb-2">
+                  Enter the 6-digit verification code from Google Authenticator:
+                </p>
+                <OtpInput
+                  value={twoFactorCode}
+                  onChange={setTwoFactorCode}
+                  disabled={isDeleting}
+                />
+              </div>
+            )}
+
+            {deleteError && (
+              <p className="text-xs text-red-400 font-semibold bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                {deleteError}
+              </p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <DialogFooter className="px-6 py-4 bg-[#161b22]/20 border-t border-border/40 flex justify-end gap-3 -mx-0 -mb-0 rounded-none">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setDeletingService(null);
+                setConfirmName('');
+                setTwoFactorCode('');
+                setDeleteError('');
+              }}
+              disabled={isDeleting}
+              className="rounded-full h-10 px-4 text-xs font-bold text-muted-foreground cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={executeDeleteService}
+              disabled={isDeleting || confirmName !== deletingService?.name || (show2FAField && twoFactorCode.length !== 6)}
+              className="rounded-full h-10 px-4 text-xs font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white cursor-pointer"
+            >
+              {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

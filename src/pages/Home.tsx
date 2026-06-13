@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { 
   Terminal, 
@@ -151,7 +151,7 @@ export const Home: React.FC = () => {
             </div>
             <div className="flex items-center gap-1.5">
               <Database className="w-4 h-4 text-blue-500" />
-              <span>Isolated Tables</span>
+              <span>Isolated Namespaces</span>
             </div>
           </div>
         </div>

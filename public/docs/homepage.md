@@ -7,7 +7,7 @@ Velicor is a next-generation log ingestion proxy designed for cloud-native micro
 ## ⚡ Core Features
 
 - **High-Speed Ingestion**: Process tens of thousands of logs per second using non-blocking connection pools.
-- **Dynamic Isolation**: Schema management maps every service to its own isolated table for zero cross-talk.
+- **Dynamic Isolation**: Namespace isolation maps every service to its own logical partition for zero cross-talk.
 - **Proactive Alerts**: Define filter metrics (e.g., `level == FATAL`) to ping Slack, Discord, or custom microservices.
 - **Serverless Optimizations**: Ingestion endpoints detect serverless context to prevent background thread freezing.
 
@@ -18,7 +18,7 @@ Velicor is a next-generation log ingestion proxy designed for cloud-native micro
 Integrating your application with Velicor requires just three steps:
 
 ### 1. Create a Service Profile
-Log into the **Velicor Dashboard** and create a new service registration. This allocates an isolated table in the telemetry engine and generates a cryptographically secure **API Key**.
+Log into the **Velicor Dashboard** and create a new service registration. This allocates an isolated namespace partition in the telemetry engine and generates a cryptographically secure **API Key**.
 
 ### 2. Configure SDK or API Client
 Add the Velicor endpoint and key to your application configuration. You can ingest logs directly via HTTP POST requests.
@@ -110,7 +110,7 @@ log_to_velicor("ERROR", "Token validation failed", {"user_id": "3192"})
 ## 🔒 Security & Data Compliance
 
 Velicor enforces industry-standard transport security and strict tenant isolation:
-* **Token Verification**: Ingestion API keys are salted and hashed, checked against a fast-lookup Redis/MongoDB cache.
+* **Token Verification**: Ingestion API keys are salted and hashed, checked against a fast-lookup secure credentials cache.
 * **Metadata Sanitization**: Velicor automatically strips ANSI escape sequences and colors to ensure clean indexing.
 * **Row-Level Partitioning**: Queries to the analytics engine restrict bounds to your service schema.
 
@@ -118,7 +118,7 @@ Velicor enforces industry-standard transport security and strict tenant isolatio
 
 ## 🔄 Self-Monitoring & Telemetry Loops
 
-For advanced microservice environments, you can configure Velicor to self-ingest its own system logs (often referred to as **dogfooding**). By creating a dedicated `velicor-backend` service, you can route internal FastAPI operations directly into the logging dashboard.
+For advanced microservice environments, you can configure Velicor to self-ingest its own system logs (often referred to as **dogfooding**). By creating a dedicated `velicor-backend` service, you can route internal system operations directly into the logging dashboard.
 
 > [!WARNING]
 > **The Telemetry Death Loop**
@@ -130,7 +130,7 @@ For advanced microservice environments, you can configure Velicor to self-ingest
 > 
 > To prevent this, always define **exclusion filters** in your backend logging handler. Ignore loggers originating from:
 > * `app.services.worker` (async ingestion queue workers)
-> * `app.db.postgres` & `app.db.redis` (database drivers & caches)
+> * `app.db.database` & `app.db.cache` (internal database drivers & caches)
 
 ---
 

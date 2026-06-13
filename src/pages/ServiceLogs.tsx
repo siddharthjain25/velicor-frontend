@@ -7,13 +7,15 @@ import { LiveTerminal } from '../components/LiveTerminal';
 import { HistoricalLogs } from '../components/HistoricalLogs';
 import { IntegrationGuide } from '../components/IntegrationGuide';
 import { LogAnalytics } from '../components/LogAnalytics';
-import { Button } from '../components/ui/Button';
+import { Button } from '../components/ui/button';
 import { ArrowLeft, Terminal, History, PlayCircle, Code2, BarChart3 } from 'lucide-react';
 import { ApiKeyDisplay } from '../components/ApiKeyDisplay';
+import { useCustomDialog } from '../context/DialogContext';
 
 type Tab = 'live' | 'history' | 'sdk' | 'analytics';
 
 export const ServiceLogsPage: React.FC = () => {
+  const customDialog = useCustomDialog();
   const { serviceName } = useParams<{ serviceName: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const apiKey = searchParams.get('key') || '';
@@ -32,7 +34,12 @@ export const ServiceLogsPage: React.FC = () => {
   const handleResetKey = async () => {
     if (!token) return;
     
-    const confirmed = window.confirm(`Are you sure you want to reset the API Key for "${serviceName}"? Existing services using the old key will stop being able to ingest logs.`);
+    const confirmed = await customDialog.confirm({
+      title: "Reset API Key",
+      description: `Are you sure you want to reset the API Key for "${serviceName}"? Existing services using the old key will stop being able to ingest logs.`,
+      confirmLabel: "Reset Key",
+      cancelLabel: "Cancel",
+    });
     
     if (confirmed) {
       try {
@@ -44,7 +51,10 @@ export const ServiceLogsPage: React.FC = () => {
           setSearchParams({ key: updated.secret_key });
         }
       } catch (err: any) {
-        alert(`Failed to reset key: ${err.message}`);
+        await customDialog.alert({
+          title: "Reset Error",
+          description: `Failed to reset key: ${err.message}`,
+        });
       }
     }
   };

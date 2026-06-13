@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
-import { Badge } from './Badge';
+import { Badge } from './badge';
 
 interface Option {
   id: string;

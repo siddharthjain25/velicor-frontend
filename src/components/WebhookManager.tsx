@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Bell, Trash2, Plus, Globe, AlertTriangle, Settings2, Edit2, X, Check } from 'lucide-react';
-import { Badge } from './ui/Badge';
+import { Badge } from './ui/badge';
 import { addWebhook, deleteWebhook, updateWebhook, getWebhooks, getServices } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { SearchableMultiSelect } from './ui/SearchableMultiSelect';
+import { useCustomDialog } from '../context/DialogContext';
 
 const AVAILABLE_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
 
@@ -22,6 +23,7 @@ export const WebhookManager: React.FC = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [editServices, setEditServices] = useState<string[]>([]);
   const { token } = useAuth();
+  const customDialog = useCustomDialog();
 
   useEffect(() => {
     fetchWebhooks();
@@ -64,7 +66,12 @@ export const WebhookManager: React.FC = () => {
   const handleAddWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !newUrl || selectedLevels.length === 0) {
-      if (selectedLevels.length === 0) alert("Please select at least one log level.");
+      if (selectedLevels.length === 0) {
+        await customDialog.alert({
+          title: "Selection Required",
+          description: "Please select at least one log level.",
+        });
+      }
       return;
     }
     try {
@@ -78,7 +85,10 @@ export const WebhookManager: React.FC = () => {
       setSelectedLevels(["ERROR", "FATAL"]);
       setSelectedServices([]);
     } catch (err: any) {
-      alert(err.message);
+      await customDialog.alert({
+        title: "Error Adding Webhook",
+        description: err.message,
+      });
     }
   };
 
@@ -93,7 +103,10 @@ export const WebhookManager: React.FC = () => {
       setWebhooks(webhooks.map(w => w.id === webhookId ? { ...w, url: editUrl, levels: editLevels, services: editServices } : w));
       setEditingId(null);
     } catch (err: any) {
-      alert(err.message);
+      await customDialog.alert({
+        title: "Error Updating Webhook",
+        description: err.message,
+      });
     }
   };
 
@@ -103,7 +116,10 @@ export const WebhookManager: React.FC = () => {
       await deleteWebhook(token, webhookId);
       setWebhooks(webhooks.filter(w => w.id !== webhookId));
     } catch (err: any) {
-      alert(err.message);
+      await customDialog.alert({
+        title: "Error Deleting Webhook",
+        description: err.message,
+      });
     }
   };
 

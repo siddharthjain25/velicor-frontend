@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
-import { Button } from './ui/Button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
+import { Button } from './ui/button';
 import { Terminal, Copy, Check, Code2, Cpu, AlertTriangle } from 'lucide-react';
-import { Badge } from './ui/Badge';
+import { useCustomDialog } from '../context/DialogContext';
+import { Badge } from './ui/badge';
 
 interface IntegrationGuideProps {
   apiKey: string;
@@ -11,6 +12,7 @@ interface IntegrationGuideProps {
 
 export const IntegrationGuide: React.FC<IntegrationGuideProps> = ({ apiKey, serviceName }) => {
   const [copied, setCopied] = useState<string | null>(null);
+  const customDialog = useCustomDialog();
   
   // Ensure we have an absolute URL for the SDK snippets
   const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
@@ -18,9 +20,12 @@ export const IntegrationGuide: React.FC<IntegrationGuideProps> = ({ apiKey, serv
     ? rawBaseUrl 
     : `${window.location.origin}${rawBaseUrl}`).replace(/\/$/, '');
 
-  const copyToClipboard = (text: string, id: string) => {
+  const copyToClipboard = async (text: string, id: string) => {
     if (!apiKey) {
-      alert("Please ensure you have a valid API key before copying snippets.");
+      await customDialog.alert({
+        title: "API Key Required",
+        description: "Please ensure you have a valid API key before copying snippets.",
+      });
       return;
     }
     navigator.clipboard.writeText(text);
