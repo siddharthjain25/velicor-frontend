@@ -23,6 +23,8 @@ export interface User {
   first_name?: string;
   last_name?: string;
   created_at: string;
+  two_factor_enabled?: boolean;
+  two_factor_backup_codes_count?: number;
 }
 
 export async function ingestLogs(logs: LogEntry | LogEntry[], apiKey: string) {
@@ -148,10 +150,15 @@ export async function updateService(token: string, serviceId: string, data: { re
   return response.json();
 }
 
-export async function deleteService(token: string, serviceId: string) {
+export async function deleteService(token: string, serviceId: string, code?: string) {
+  const headers: Record<string, string> = { 'Authorization': `Bearer ${token}` };
+  if (code) {
+    headers['X-2FA-Code'] = code;
+  }
+
   const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}`, {
     method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers,
   });
   if (!response.ok) {
     const error = await response.json();
@@ -253,5 +260,91 @@ export async function searchLogs(apiKey: string, filters: {
     throw new Error(error.detail || 'Search failed');
   }
 
+  return response.json();
+}
+
+export async function setup2FA(token: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/2fa/setup`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to setup 2FA');
+  }
+  return response.json();
+}
+
+export async function enable2FA(token: string, code: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/2fa/enable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ code })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to enable 2FA');
+  }
+  return response.json();
+}
+
+export async function disable2FA(token: string, code: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/2fa/disable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ code })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to disable 2FA');
+  }
+  return response.json();
+}
+
+export async function verify2FALogin(tempToken: string, code: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/token/verify-2fa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ temp_token: tempToken, code })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to verify 2FA code');
+  }
+  return response.json();
+}
+
+export async function generateBackupCodes(token: string, code: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/2fa/backup-codes/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ code })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to generate backup codes');
+  }
+  return response.json();
+}
+
+export async function resetPassword(username: string, code: string, newPassword: string) {
+  const response = await fetch(`${BASE_URL}/api/v1/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, code, new_password: newPassword })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reset password');
+  }
   return response.json();
 }

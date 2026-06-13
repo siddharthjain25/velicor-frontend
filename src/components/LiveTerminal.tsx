@@ -65,7 +65,7 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           if (results && results.length > 0) {
             const newLogs = results.filter((log: any) => 
               !lastTsRef.current || new Date(log.timestamp) > new Date(lastTsRef.current)
-            ).reverse();
+            );
 
             if (newLogs.length > 0) {
               const newLogsWithId = newLogs.map((log: any) => ({
@@ -73,11 +73,11 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
                 _client_id: log._client_id || Math.random().toString(36).substring(2, 9)
               }));
               logCountRef.current += newLogsWithId.length;
-              setAccumulatedLogs(prev => [...prev.slice(-(100 - newLogsWithId.length)), ...newLogsWithId]);
+              setAccumulatedLogs(prev => [...newLogsWithId, ...prev.slice(0, 100 - newLogsWithId.length)]);
               if (!isPausedRef.current) {
-                setLogs(prev => [...prev.slice(-(100 - newLogsWithId.length)), ...newLogsWithId]);
+                setLogs(prev => [...newLogsWithId, ...prev.slice(0, 100 - newLogsWithId.length)]);
               }
-              lastTsRef.current = newLogsWithId[newLogsWithId.length - 1].timestamp;
+              lastTsRef.current = newLogsWithId[0].timestamp;
             }
           }
         } catch (err) {
@@ -124,9 +124,9 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
             ...data,
             _client_id: data._client_id || Math.random().toString(36).substring(2, 9)
           };
-          setAccumulatedLogs(prev => [...prev.slice(-99), logWithId]);
+          setAccumulatedLogs(prev => [logWithId, ...prev.slice(0, 99)]);
           if (!isPausedRef.current) {
-            setLogs(prev => [...prev.slice(-99), logWithId]);
+            setLogs(prev => [logWithId, ...prev.slice(0, 99)]);
           }
           lastTsRef.current = data.timestamp;
         };
@@ -165,7 +165,7 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
 
   useEffect(() => {
     if (scrollRef.current && !isPaused) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = 0;
     }
   }, [logs, isPaused]);
 
