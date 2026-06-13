@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login as apiLogin, verify2FALogin, resetPassword } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card';
-import { Terminal, KeyRound, User, AlertCircle, Sparkles, ShieldCheck, Lock } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { KeyRound, User, AlertCircle, Sparkles, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
 import { OtpInput } from '../components/OtpInput';
 
 export const Login: React.FC = () => {
@@ -23,6 +23,9 @@ export const Login: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -99,9 +102,7 @@ export const Login: React.FC = () => {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center pt-8 pb-2">
-          <div className="bg-primary p-2.5 rounded-xl mb-3 shadow-lg shadow-primary/10">
-            <Terminal className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img src="/logo.png" alt="Velicor Logo" className="w-12 h-12 object-contain rounded-xl mb-3 shadow-lg shadow-primary/10" />
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider mb-2">
             <Sparkles className="w-3 h-3" /> Secure Gatekeeper
           </div>
@@ -172,28 +173,46 @@ export const Login: React.FC = () => {
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-muted-foreground/60" /> New Password
                 </label>
-                <Input 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={newPassword} 
-                  onChange={(e) => setNewPassword(e.target.value)} 
-                  required 
-                  className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs"
-                />
+                <div className="relative flex items-center">
+                  <Input 
+                    type={showNewPassword ? "text" : "password"} 
+                    placeholder="••••••••"
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)} 
+                    required 
+                    className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs w-full pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-muted-foreground/60" /> Confirm New Password
                 </label>
-                <Input 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={confirmPassword} 
-                  onChange={(e) => setConfirmPassword(e.target.value)} 
-                  required 
-                  className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs"
-                />
+                <div className="relative flex items-center">
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="••••••••"
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                    required 
+                    className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs w-full pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <Button 
@@ -323,14 +342,23 @@ export const Login: React.FC = () => {
                     Forgot Password?
                   </button>
                 </div>
-                <Input 
-                  type="password" 
-                  placeholder="••••••••"
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  required 
-                  className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11"
-                />
+                <div className="relative flex items-center">
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="••••••••"
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    required 
+                    className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 w-full pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               
               <Button 

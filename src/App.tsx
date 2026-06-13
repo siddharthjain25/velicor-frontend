@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { DialogProvider } from './context/DialogContext'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { ServicesPage } from './pages/Services'
@@ -61,8 +62,11 @@ function AppContent() {
         </main>
       </div>
       
-      <footer className="mt-auto w-full py-8 px-4 md:px-8 border-t border-border/40 text-center sm:text-left">
-        <p className="text-xs md:text-sm font-medium text-muted-foreground">Velicor Systems &copy; 2026. All systems operational.</p>
+      <footer className="mt-auto w-full py-8 px-4 md:px-8 border-t border-border/40 text-center">
+        <p className="text-xs md:text-sm font-medium text-muted-foreground">
+          Made with <span className="text-red-500 inline-block animate-pulse">❤️</span> by{" "}
+          <span className="font-semibold text-white">Siddharth Jain</span>
+        </p>
       </footer>
     </div>
   )
@@ -71,9 +75,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <DialogProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </DialogProvider>
     </AuthProvider>
   )
 }

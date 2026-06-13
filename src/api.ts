@@ -66,7 +66,7 @@ export async function getMe(token: string): Promise<User> {
   return response.json();
 }
 
-export async function updateUserProfile(token: string, data: { first_name?: string, last_name?: string, password?: string }): Promise<User> {
+export async function updateUserProfile(token: string, data: { first_name?: string, last_name?: string, password?: string, old_password?: string }): Promise<User> {
   const response = await fetch(`${BASE_URL}/api/v1/auth/me`, {
     method: 'PUT',
     headers: { 

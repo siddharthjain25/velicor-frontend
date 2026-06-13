@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/Card';
-import { Button } from './ui/Button';
-import { Input } from './ui/Input';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap, Play, Pause, Search, ChevronRight } from 'lucide-react';
-import { Badge } from './ui/Badge';
+import { Badge } from './ui/badge';
 import { searchLogs } from '../api';
 
 interface LiveTerminalProps {

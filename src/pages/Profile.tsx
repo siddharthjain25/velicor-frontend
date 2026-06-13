@@ -2,19 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMe, updateUserProfile, deleteAccount, setup2FA, enable2FA, disable2FA, generateBackupCodes, type User } from '../api';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { User as UserIcon, Lock, UserCircle, AlertTriangle, Trash2, ShieldAlert, ShieldCheck, QrCode } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { User as UserIcon, Lock, UserCircle, AlertTriangle, Trash2, ShieldAlert, ShieldCheck, QrCode, Eye, EyeOff } from 'lucide-react';
 import { OtpInput } from '../components/OtpInput';
+import { useCustomDialog } from '../context/DialogContext';
 
 export const Profile: React.FC = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
+  const customDialog = useCustomDialog();
   const [user, setUser] = useState<User | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
@@ -72,6 +77,11 @@ export const Profile: React.FC = () => {
     e.preventDefault();
     if (!token) return;
     
+    if (!oldPassword.trim()) {
+      setMessage({ type: 'error', text: 'Please enter your current password.' });
+      return;
+    }
+
     if (!password.trim()) {
       setMessage({ type: 'error', text: 'Please enter a new password.' });
       return;
@@ -86,9 +96,10 @@ export const Profile: React.FC = () => {
     setMessage({ type: '', text: '' });
     
     try {
-      const updatedUser = await updateUserProfile(token, { password });
+      const updatedUser = await updateUserProfile(token, { password, old_password: oldPassword });
       setUser(updatedUser);
       setPassword('');
+      setOldPassword('');
       setMessage({ type: 'success', text: 'Password updated successfully.' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to update password.' });
@@ -100,10 +111,20 @@ export const Profile: React.FC = () => {
   const handleDeleteAccount = async () => {
     if (!token) return;
     
-    const confirmed = window.confirm("WARNING: This will PERMANENTLY delete your account and all associated services and logs. This action cannot be undone. Are you sure?");
+    const confirmed = await customDialog.confirm({
+      title: "Warning: Delete Account",
+      description: "WARNING: This will PERMANENTLY delete your account and all associated services and logs. This action cannot be undone. Are you sure?",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    });
     
     if (confirmed) {
-      const secondConfirmation = window.confirm("Final check: Are you absolutely sure you want to delete your account?");
+      const secondConfirmation = await customDialog.confirm({
+        title: "Final Confirmation Required",
+        description: "Final check: Are you absolutely sure you want to delete your account?",
+        confirmLabel: "Yes, Delete",
+        cancelLabel: "No, Keep It",
+      });
       if (secondConfirmation) {
         try {
           await deleteAccount(token);
@@ -142,7 +163,10 @@ export const Profile: React.FC = () => {
       setBackupCodes(result.backup_codes || []);
       setMessage({ type: 'success', text: 'Two-Factor Authentication enabled successfully!' });
     } catch (err: any) {
-      alert(err.message || 'Failed to enable 2FA. Please verify the code.');
+      await customDialog.alert({
+        title: "Setup Error",
+        description: err.message || 'Failed to enable 2FA. Please verify the code.',
+      });
     }
   };
 
@@ -155,7 +179,10 @@ export const Profile: React.FC = () => {
       setVerificationCode('');
       setMessage({ type: 'success', text: 'Two-Factor Authentication disabled successfully.' });
     } catch (err: any) {
-      alert(err.message || 'Failed to disable 2FA. Please verify the code.');
+      await customDialog.alert({
+        title: "Setup Error",
+        description: err.message || 'Failed to disable 2FA. Please verify the code.',
+      });
     }
   };
 
@@ -169,7 +196,10 @@ export const Profile: React.FC = () => {
       setUser(prev => prev ? { ...prev, two_factor_backup_codes_count: 8 } : null);
       setMessage({ type: 'success', text: 'New backup recovery codes generated successfully!' });
     } catch (err: any) {
-      alert(err.message || 'Failed to generate backup codes. Please verify the code.');
+      await customDialog.alert({
+        title: "Generation Error",
+        description: err.message || 'Failed to generate backup codes. Please verify the code.',
+      });
     }
   };
 
@@ -271,11 +301,11 @@ export const Profile: React.FC = () => {
                   </div>
                 </div>
               </CardContent>
-              <div className="p-6 pt-2 border-t border-border/40 bg-[#161b22]/10 flex justify-end">
+              <div className="p-6 pt-2 bg-[#161b22]/10 flex justify-center">
                 <Button 
                   type="submit" 
                   disabled={isSaving}
-                  className="rounded-xl h-9 px-4 font-bold text-xs cursor-pointer"
+                  className="rounded-full h-9 px-4 font-bold text-xs cursor-pointer"
                 >
                   {isSaving ? "Saving..." : "Save Profile"}
                 </Button>
@@ -294,23 +324,52 @@ export const Profile: React.FC = () => {
             <form onSubmit={handleUpdatePassword} className="flex-grow flex flex-col justify-between">
               <CardContent className="pt-6 space-y-4">
                 <div className="grid gap-2">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Current Password</label>
+                  <div className="relative flex items-center">
+                    <Input 
+                      type={showOldPassword ? "text" : "password"} 
+                      placeholder="Enter current password" 
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      required
+                      className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs w-full pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOldPassword(!showOldPassword)}
+                      className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="grid gap-2">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">New Password</label>
-                  <Input 
-                    type="password" 
-                    placeholder="Enter new password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs"
-                  />
+                  <div className="relative flex items-center">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Enter new password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="bg-zinc-950/50 border-border/40 focus:border-primary/50 transition-all rounded-xl h-11 text-xs w-full pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 text-muted-foreground hover:text-white transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                   <p className="text-[9px] text-muted-foreground/60 italic">Ensure password utilizes at least 8 characters</p>
                 </div>
               </CardContent>
-              <div className="p-6 pt-2 border-t border-border/40 bg-[#161b22]/10 flex justify-end">
+              <div className="p-6 pt-2 bg-[#161b22]/10 flex justify-center">
                 <Button 
                   type="submit" 
                   disabled={isSavingPassword}
-                  className="rounded-xl h-9 px-4 font-bold text-xs cursor-pointer"
+                  className="rounded-full h-9 px-4 font-bold text-xs cursor-pointer"
                 >
                   {isSavingPassword ? "Updating..." : "Update Password"}
                 </Button>
@@ -363,11 +422,14 @@ export const Profile: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       navigator.clipboard.writeText(backupCodes.join('\n'));
-                      alert("Backup codes copied to clipboard!");
+                      await customDialog.alert({
+                        title: "Success",
+                        description: "Backup codes copied to clipboard!",
+                      });
                     }}
-                    className="rounded-xl text-[10px] font-bold h-9 px-3"
+                    className="rounded-full text-[10px] font-bold h-9 px-3"
                   >
                     Copy Codes
                   </Button>
@@ -375,7 +437,7 @@ export const Profile: React.FC = () => {
                     type="button"
                     size="sm"
                     onClick={handleDownloadBackupCodes}
-                    className="rounded-xl text-[10px] font-bold h-9 px-3 bg-zinc-800 text-white hover:bg-zinc-700 hover:text-white transition-all cursor-pointer border border-border/60"
+                    className="rounded-full text-[10px] font-bold h-9 px-3 bg-zinc-800 text-white hover:bg-zinc-700 hover:text-white transition-all cursor-pointer border border-border/60"
                   >
                     Download Codes
                   </Button>
@@ -384,7 +446,7 @@ export const Profile: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => setBackupCodes([])}
-                    className="rounded-xl text-[10px] text-muted-foreground h-9 px-3 cursor-pointer"
+                    className="rounded-full text-[10px] text-muted-foreground h-9 px-3 cursor-pointer"
                   >
                     Dismiss
                   </Button>
@@ -421,7 +483,7 @@ export const Profile: React.FC = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-primary/30 hover:bg-primary/10 text-primary hover:text-primary-foreground rounded-xl h-10 px-4 font-bold text-xs cursor-pointer"
+                        className="border-primary/30 hover:bg-primary/10 text-primary hover:text-primary-foreground rounded-full h-10 px-4 font-bold text-xs cursor-pointer"
                         onClick={() => {
                           setIsGeneratingBackupCodes(true);
                           setVerificationCode('');
@@ -432,7 +494,7 @@ export const Profile: React.FC = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        className="border-red-500/30 hover:bg-red-500/10 text-red-400 hover:text-red-300 rounded-xl h-10 px-4 font-bold text-xs cursor-pointer"
+                        className="border-red-500/30 hover:bg-red-500/10 text-red-400 hover:text-red-300 rounded-full h-10 px-4 font-bold text-xs cursor-pointer"
                         onClick={() => {
                           setIsDisabling(true);
                           setVerificationCode('');
@@ -458,7 +520,7 @@ export const Profile: React.FC = () => {
                         <Button
                           type="button"
                           onClick={handleGenerateBackupCodes}
-                          className="rounded-xl h-10 px-4 font-bold text-xs cursor-pointer disabled:opacity-50"
+                          className="rounded-full h-10 px-4 font-bold text-xs cursor-pointer disabled:opacity-50"
                           disabled={verificationCode.length !== 6}
                         >
                           Generate Codes
@@ -470,7 +532,7 @@ export const Profile: React.FC = () => {
                             setIsGeneratingBackupCodes(false);
                             setVerificationCode('');
                           }}
-                          className="rounded-xl h-10 px-4 text-muted-foreground cursor-pointer"
+                          className="rounded-full h-10 px-4 text-muted-foreground cursor-pointer"
                         >
                           Cancel
                         </Button>
@@ -493,7 +555,7 @@ export const Profile: React.FC = () => {
                           type="button"
                           variant="destructive"
                           onClick={handleDisable2FA}
-                          className="rounded-xl h-10 px-4 font-bold text-xs disabled:opacity-50"
+                          className="rounded-full h-10 px-4 font-bold text-xs disabled:opacity-50"
                           disabled={verificationCode.length !== 6}
                         >
                           Confirm Disable
@@ -505,7 +567,7 @@ export const Profile: React.FC = () => {
                             setIsDisabling(false);
                             setVerificationCode('');
                           }}
-                          className="rounded-xl h-10 px-4 text-muted-foreground"
+                          className="rounded-full h-10 px-4 text-muted-foreground"
                         >
                           Cancel
                         </Button>
@@ -524,7 +586,7 @@ export const Profile: React.FC = () => {
                     <Button
                       type="button"
                       onClick={handleStartSetup}
-                      className="rounded-xl gap-2 font-bold text-xs h-10 px-4 cursor-pointer"
+                      className="rounded-full gap-2 font-bold text-xs h-10 px-4 cursor-pointer"
                     >
                       <QrCode className="w-4 h-4" /> Setup Authenticator
                     </Button>
@@ -552,7 +614,7 @@ export const Profile: React.FC = () => {
                           <Button
                             type="button"
                             onClick={handleEnable2FA}
-                            className="rounded-xl h-10 px-4 font-bold text-xs cursor-pointer disabled:opacity-50"
+                            className="rounded-full h-10 px-4 font-bold text-xs cursor-pointer disabled:opacity-50"
                             disabled={verificationCode.length !== 6}
                           >
                             Activate 2FA
@@ -566,7 +628,7 @@ export const Profile: React.FC = () => {
                               setSetupSecret('');
                               setVerificationCode('');
                             }}
-                            className="rounded-xl h-10 px-4 text-muted-foreground border border-muted cursor-pointer"
+                            className="rounded-full h-10 px-4 text-muted-foreground border border-muted cursor-pointer"
                           >
                             Cancel
                           </Button>
@@ -597,7 +659,7 @@ export const Profile: React.FC = () => {
               <Button 
                 type="button" 
                 variant="destructive" 
-                className="rounded-xl gap-2 font-bold text-xs h-10 px-4 cursor-pointer"
+                className="rounded-full gap-2 font-bold text-xs h-10 px-4 cursor-pointer"
                 onClick={handleDeleteAccount}
               >
                 <Trash2 className="w-3.5 h-3.5" /> Decommission Account

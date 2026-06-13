@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button } from './ui/Button';
+import { Button } from './ui/button';
 import { 
   LayoutDashboard, 
   User, 
   LogOut, 
-  Terminal, 
   Menu,
   X,
   BookOpen,
@@ -31,9 +30,7 @@ export const Navbar: React.FC = () => {
       <div className="w-full flex h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-8">
           <Link to="/" className="flex items-center gap-2 transition-all hover:opacity-80">
-            <div className="bg-primary p-1.5 rounded-lg">
-              <Terminal className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="Velicor Logo" className="w-8 h-8 object-contain rounded-lg shadow-lg shadow-primary/10" />
             <span className="font-black text-xl tracking-tighter uppercase text-white">Velicor</span>
           </Link>
 

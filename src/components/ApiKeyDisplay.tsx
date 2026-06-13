@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Copy, Check, Shield, RefreshCw } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Button } from './ui/button';
 
 interface ApiKeyDisplayProps {
   apiKey: string;

@@ -119,7 +119,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
     }
 
     return (
-      <div className={`p-4 rounded-xl border ${borderColor} ${bgColor} flex gap-3 my-6 animate-in fade-in duration-300`}>
+      <div className={`p-4 rounded-xl border ${borderColor} ${bgColor} flex gap-3 my-6`}>
         <div className="shrink-0 mt-0.5">{icon}</div>
         <div className="space-y-1">
           <p className={`text-[11px] font-bold uppercase tracking-wider ${titleColor}`}>{title}</p>

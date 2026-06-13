@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ingestLogs, type LogEntry } from '../api';
-import { Button } from './ui/Button';
+import { Button } from './ui/button';
+import { useCustomDialog } from '../context/DialogContext';
 
 const LOG_LEVELS = ['INFO', 'WARN', 'ERROR', 'DEBUG', 'FATAL'] as const;
 
@@ -12,6 +13,7 @@ export const LogForm: React.FC = () => {
     metadata: '',
   });
   const [loading, setLoading] = useState(false);
+  const customDialog = useCustomDialog();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,10 @@ export const LogForm: React.FC = () => {
         try {
           metadata = JSON.parse(formData.metadata);
         } catch (e) {
-          alert('Invalid JSON in metadata');
+          await customDialog.alert({
+            title: "Validation Error",
+            description: 'Invalid JSON in metadata',
+          });
           setLoading(false);
           return;
         }
@@ -40,7 +45,10 @@ export const LogForm: React.FC = () => {
       setFormData((prev) => ({ ...prev, message: '' }));
     } catch (err) {
       console.error(err);
-      alert('Failed to send log');
+      await customDialog.alert({
+        title: "Ingestion Error",
+        description: 'Failed to send log',
+      });
     } finally {
       setLoading(false);
     }
