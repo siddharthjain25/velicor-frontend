@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getServices, createService, deleteService, resetServiceKey, updateService, type Service } from '../api';
+import { getServices, createService, deleteService, resetServiceKey, updateService, getMe, type Service, type User } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Server, ChevronRight, Trash2, Clock, Check, Edit2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
 import { ApiKeyDisplay } from '../components/ApiKeyDisplay';
+import { OtpInput } from '../components/OtpInput';
 
 export const ServicesPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -16,11 +17,23 @@ export const ServicesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingRetention, setEditingRetention] = useState<string | null>(null);
   const [tempRetention, setTempRetention] = useState<number>(30);
+  const [user, setUser] = useState<User | null>(null);
+  const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [confirmName, setConfirmName] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [show2FAField, setShow2FAField] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const { token } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchServices();
+    if (token) {
+      getMe(token)
+        .then(setUser)
+        .catch(err => console.error("Failed to fetch user profile", err));
+    }
   }, [token]);
 
   const fetchServices = async () => {
@@ -59,19 +72,34 @@ export const ServicesPage: React.FC = () => {
     }
   };
 
-  const handleDeleteService = async (e: React.MouseEvent, serviceId: string, serviceName: string) => {
+  const handleDeleteServiceClick = (e: React.MouseEvent, service: Service) => {
     e.stopPropagation();
-    if (!token) return;
-    
-    const confirmed = window.confirm(`Are you sure you want to PERMANENTLY delete the service "${serviceName}"? This will delete all its logs and its Postgres table.`);
-    
-    if (confirmed) {
-      try {
-        await deleteService(token, serviceId);
-        fetchServices();
-      } catch (err: any) {
-        setError(err.message);
+    setDeletingService(service);
+    setConfirmName('');
+    setTwoFactorCode('');
+    setDeleteError('');
+    setShow2FAField(!!user?.two_factor_enabled);
+  };
+
+  const executeDeleteService = async () => {
+    if (!token || !deletingService) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteService(token, deletingService._id, show2FAField ? twoFactorCode : undefined);
+      setDeletingService(null);
+      setConfirmName('');
+      setTwoFactorCode('');
+      fetchServices();
+    } catch (err: any) {
+      if (err.message && (err.message.includes("Two-factor") || err.message.includes("403"))) {
+        setShow2FAField(true);
+        setDeleteError("Two-Factor Authentication (2FA) is required to delete this service. Please provide your 6-digit OTP code below.");
+      } else {
+        setDeleteError(err.message || 'Failed to delete service');
       }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -203,7 +231,7 @@ export const ServicesPage: React.FC = () => {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => handleDeleteService(e, s._id, s.name)}
+                          onClick={(e) => handleDeleteServiceClick(e, s)}
                         >
                           <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                         </Button>
@@ -234,6 +262,98 @@ export const ServicesPage: React.FC = () => {
           )}
         </section>
       </div>
+
+      {deletingService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0d1117]/95 border border-border/80 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-border/40 bg-[#161b22]/30 flex items-center gap-3">
+              <div className="p-2 bg-destructive/15 rounded-xl border border-destructive/20 text-destructive">
+                <Trash2 className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm tracking-tight text-white">Delete Telemetry Service</h3>
+                <p className="text-[11px] text-muted-foreground">This action is irreversible and permanent.</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5">
+              <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-xl space-y-1 text-[11px] text-red-400/90 leading-relaxed">
+                <p className="font-bold text-red-500 flex items-center gap-1.5 uppercase tracking-wide">
+                  ⚠️ Warning
+                </p>
+                <p>
+                  Deleting <strong>{deletingService.name}</strong> will permanently remove all associated log data, purge all ingested archives, and invalidate the service credentials.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
+                  Confirm Service Name
+                </label>
+                <p className="text-[10px] text-muted-foreground italic">
+                  To proceed, please type <span className="font-mono text-white bg-zinc-800 px-1 rounded">{deletingService.name}</span>:
+                </p>
+                <Input
+                  type="text"
+                  placeholder={deletingService.name}
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  className="bg-zinc-950/50 border-border/40 focus:border-red-500/50 rounded-xl h-11 text-xs"
+                />
+              </div>
+
+              {show2FAField && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] flex items-center gap-1.5">
+                    Two-Factor OTP Code
+                  </label>
+                  <p className="text-[10px] text-muted-foreground italic mb-2">
+                    Enter the 6-digit verification code from Google Authenticator:
+                  </p>
+                  <OtpInput
+                    value={twoFactorCode}
+                    onChange={setTwoFactorCode}
+                    disabled={isDeleting}
+                  />
+                </div>
+              )}
+
+              {deleteError && (
+                <p className="text-xs text-red-400 font-semibold bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                  {deleteError}
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-[#161b22]/20 border-t border-border/40 flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setDeletingService(null);
+                  setConfirmName('');
+                  setTwoFactorCode('');
+                  setDeleteError('');
+                }}
+                disabled={isDeleting}
+                className="rounded-xl h-10 px-4 text-xs font-bold text-muted-foreground cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={executeDeleteService}
+                disabled={isDeleting || confirmName !== deletingService.name || (show2FAField && twoFactorCode.length !== 6)}
+                className="rounded-xl h-10 px-4 text-xs font-bold bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white cursor-pointer"
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

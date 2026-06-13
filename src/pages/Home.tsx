@@ -114,7 +114,7 @@ export const Home: React.FC = () => {
           </h1>
           
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed">
-            Velicor aggregates logs across all your microservice nodes, indexing them inside high-speed PostgreSQL engines with instant search and active alerting hooks.
+            Velicor aggregates logs across all your microservice nodes, indexing them inside high-speed storage engines with instant search and active alerting hooks.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -243,7 +243,7 @@ export const Home: React.FC = () => {
               </div>
               <h3 className="font-bold text-base text-white tracking-tight">Database Isolation</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Velicor partitions data automatically. Each microservice writes to isolated PostgreSQL partitions ensuring logical boundaries.
+                Velicor partitions data automatically. Each microservice writes to isolated database partitions ensuring logical boundaries.
               </p>
             </CardContent>
           </Card>
