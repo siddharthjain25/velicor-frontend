@@ -20,6 +20,7 @@ export const ServicesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingRetention, setEditingRetention] = useState<string | null>(null);
   const [tempRetention, setTempRetention] = useState<number>(30);
+  const [retentionUnit, setRetentionUnit] = useState<'days' | 'minutes'>('days');
   const [user, setUser] = useState<User | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [confirmName, setConfirmName] = useState('');
@@ -65,9 +66,14 @@ export const ServicesPage: React.FC = () => {
 
   const handleUpdateRetention = async (serviceId: string) => {
     if (!token) return;
-    const days = Math.max(1, Math.min(365, tempRetention || 30));
     try {
-      await updateService(token, serviceId, { retention_days: days });
+      if (retentionUnit === 'minutes') {
+        const minutes = Math.max(1, Math.min(525600, tempRetention || 60));
+        await updateService(token, serviceId, { retention_minutes: minutes });
+      } else {
+        const days = Math.max(1, Math.min(365, tempRetention || 30));
+        await updateService(token, serviceId, { retention_days: days });
+      }
       setEditingRetention(null);
       fetchServices();
     } catch (err: any) {
@@ -208,6 +214,16 @@ export const ServicesPage: React.FC = () => {
                                 }}
                                 autoFocus
                               />
+                              <button
+                                type="button"
+                                className="text-[8px] md:text-[9px] px-1 py-0.25 rounded bg-[#1c2128] border border-border/60 hover:border-primary/40 text-primary font-bold uppercase cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRetentionUnit(prev => prev === 'days' ? 'minutes' : 'days');
+                                }}
+                              >
+                                {retentionUnit === 'days' ? 'D' : 'M'}
+                              </button>
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -224,11 +240,21 @@ export const ServicesPage: React.FC = () => {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditingRetention(s._id);
-                                setTempRetention(s.retention_days);
+                                if (s.retention_minutes && s.retention_minutes % 1440 !== 0) {
+                                  setTempRetention(s.retention_minutes);
+                                  setRetentionUnit('minutes');
+                                } else {
+                                  setTempRetention(s.retention_days);
+                                  setRetentionUnit('days');
+                                }
                               }}
                             >
                               <Clock className="w-3 h-3 text-primary/60" />
-                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-primary/80">{s.retention_days}D Retention</span>
+                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-primary/80">
+                                {s.retention_minutes && s.retention_minutes % 1440 !== 0 
+                                  ? `${s.retention_minutes}M Retention` 
+                                  : `${s.retention_days}D Retention`}
+                              </span>
                               <Edit2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
                             </div>
                           )}

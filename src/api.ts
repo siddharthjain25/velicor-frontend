@@ -14,6 +14,7 @@ export interface Service {
   name: string;
   secret_key: string;
   retention_days: number;
+  retention_minutes?: number;
   created_at: string;
 }
 
@@ -134,7 +135,7 @@ export async function createService(token: string, name: string) {
   return response.json();
 }
 
-export async function updateService(token: string, serviceId: string, data: { retention_days: number }) {
+export async function updateService(token: string, serviceId: string, data: { retention_days?: number; retention_minutes?: number }) {
   const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}`, {
     method: 'PATCH',
     headers: { 
