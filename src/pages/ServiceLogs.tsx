@@ -133,7 +133,7 @@ export const ServiceLogsPage: React.FC = () => {
       <div className="flex flex-col space-y-6 md:space-y-8">
         <main className="w-full overflow-hidden">
           {activeTab === 'live' && <LiveTerminal filterService={serviceName} apiKey={apiKey} />}
-          {activeTab === 'history' && <HistoricalLogs apiKey={apiKey} serviceName={serviceName || ''} />}
+          {activeTab === 'history' && <HistoricalLogs apiKey={apiKey} serviceName={serviceName || ''} customSeverities={services.find((s: any) => s.name === serviceName)?.custom_severities || []} />}
           {activeTab === 'sdk' && <IntegrationGuide apiKey={apiKey} serviceName={serviceName || ''} />}
           {activeTab === 'analytics' && <LogAnalytics serviceName={serviceName || ''} />}
         </main>

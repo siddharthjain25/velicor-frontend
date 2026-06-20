@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9000';
 export interface LogEntry {
   timestamp?: string;
   service_name?: string;
-  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'FATAL';
+  level: string;
   status_code?: number;
   message: string;
   metadata?: Record<string, any>;
@@ -15,6 +15,7 @@ export interface Service {
   secret_key: string;
   retention_days: number;
   retention_minutes?: number;
+  custom_severities?: string[];
   created_at: string;
 }
 

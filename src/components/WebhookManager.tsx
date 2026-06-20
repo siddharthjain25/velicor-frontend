@@ -22,8 +22,36 @@ export const WebhookManager: React.FC = () => {
   const [servicesList, setServicesList] = useState<any[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [editServices, setEditServices] = useState<string[]>([]);
+  const [dynamicLevels, setDynamicLevels] = useState<string[]>(AVAILABLE_LEVELS);
+  const [dynamicEditLevels, setDynamicEditLevels] = useState<string[]>(AVAILABLE_LEVELS);
   const { token } = useAuth();
   const customDialog = useCustomDialog();
+
+  useEffect(() => {
+    let severities = new Set(AVAILABLE_LEVELS);
+    if (selectedServices.length > 0) {
+      const servicesToConsider = servicesList.filter(s => selectedServices.includes(s.name) || selectedServices.includes(s._id));
+      servicesToConsider.forEach(s => {
+        if (s.custom_severities && Array.isArray(s.custom_severities)) {
+          s.custom_severities.forEach((cs: string) => severities.add(cs));
+        }
+      });
+    }
+    setDynamicLevels(Array.from(severities));
+  }, [servicesList, selectedServices]);
+
+  useEffect(() => {
+    let severities = new Set(AVAILABLE_LEVELS);
+    if (editServices.length > 0) {
+      const servicesToConsider = servicesList.filter(s => editServices.includes(s.name) || editServices.includes(s._id));
+      servicesToConsider.forEach(s => {
+        if (s.custom_severities && Array.isArray(s.custom_severities)) {
+          s.custom_severities.forEach((cs: string) => severities.add(cs));
+        }
+      });
+    }
+    setDynamicEditLevels(Array.from(severities));
+  }, [servicesList, editServices]);
 
   useEffect(() => {
     fetchWebhooks();
@@ -166,12 +194,27 @@ export const WebhookManager: React.FC = () => {
               </div>
             </div>
 
+            {servicesList.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+                  <Settings2 className="w-3 h-3" /> Target Services (Optional)
+                </label>
+                <SearchableMultiSelect
+                  options={servicesList.map(s => ({ id: s._id, name: s.name }))}
+                  selectedValues={selectedServices}
+                  onChange={setSelectedServices}
+                  placeholder="All services (click to filter...)"
+                />
+                <p className="text-[9px] text-muted-foreground/60 italic ml-1">If no services are selected, this alert will trigger for all services.</p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
                 <Settings2 className="w-3 h-3" /> Trigger Levels
               </label>
               <div className="flex flex-wrap gap-2">
-                {AVAILABLE_LEVELS.map(level => (
+                {dynamicLevels.map(level => (
                   <button
                     key={level}
                     type="button"
@@ -187,21 +230,6 @@ export const WebhookManager: React.FC = () => {
                 ))}
               </div>
             </div>
-
-            {servicesList.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
-                  <Settings2 className="w-3 h-3" /> Target Services (Optional)
-                </label>
-                <SearchableMultiSelect
-                  options={servicesList.map(s => ({ id: s._id, name: s.name }))}
-                  selectedValues={selectedServices}
-                  onChange={setSelectedServices}
-                  placeholder="All services (click to filter...)"
-                />
-                <p className="text-[9px] text-muted-foreground/60 italic ml-1">If no services are selected, this alert will trigger for all services.</p>
-              </div>
-            )}
           </form>
         )}
 
@@ -225,10 +253,21 @@ export const WebhookManager: React.FC = () => {
                         className="text-xs h-9 bg-background border-orange-500/30 focus-visible:ring-orange-500"
                       />
                    </div>
+                   {servicesList.length > 0 && (
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest">Update Services (Optional)</label>
+                         <SearchableMultiSelect
+                           options={servicesList.map(s => ({ id: s._id, name: s.name }))}
+                           selectedValues={editServices}
+                           onChange={setEditServices}
+                           placeholder="All services (click to filter...)"
+                         />
+                      </div>
+                   )}
                    <div className="space-y-2">
                       <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest">Update Levels</label>
                       <div className="flex flex-wrap gap-2">
-                        {AVAILABLE_LEVELS.map(level => (
+                        {dynamicEditLevels.map(level => (
                           <button
                             key={level}
                             type="button"
@@ -244,18 +283,6 @@ export const WebhookManager: React.FC = () => {
                         ))}
                       </div>
                    </div>
-
-                   {servicesList.length > 0 && (
-                      <div className="space-y-2">
-                         <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest">Update Services (Optional)</label>
-                         <SearchableMultiSelect
-                           options={servicesList.map(s => ({ id: s._id, name: s.name }))}
-                           selectedValues={editServices}
-                           onChange={setEditServices}
-                           placeholder="All services (click to filter...)"
-                         />
-                      </div>
-                   )}
                    <div className="flex gap-2 justify-end pt-2">
                       <Button variant="ghost" size="sm" onClick={() => setEditingId(null)} className="h-8 text-xs cursor-pointer">
                         <X className="w-3.5 h-3.5 mr-1" /> Cancel

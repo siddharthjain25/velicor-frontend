@@ -10,9 +10,10 @@ import { useCustomDialog } from '../context/DialogContext';
 interface HistoricalLogsProps {
   apiKey: string;
   serviceName: string;
+  customSeverities?: string[];
 }
 
-export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceName }) => {
+export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceName, customSeverities = [] }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
@@ -197,6 +198,9 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
                     <option value="ERROR">ERROR</option>
                     <option value="FATAL">FATAL</option>
                     <option value="DEBUG">DEBUG</option>
+                    {customSeverities.map(severity => (
+                      <option key={severity} value={severity}>{severity}</option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-3 md:top-3.5 w-4 h-4 text-muted-foreground pointer-events-none transition-transform group-hover:translate-y-0.5" />
                 </div>
