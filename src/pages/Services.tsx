@@ -21,6 +21,8 @@ export const ServicesPage: React.FC = () => {
   const [editingRetention, setEditingRetention] = useState<string | null>(null);
   const [tempRetention, setTempRetention] = useState<number>(30);
   const [retentionUnit, setRetentionUnit] = useState<'days' | 'minutes'>('days');
+  const [editingSeverities, setEditingSeverities] = useState<string | null>(null);
+  const [tempSeverities, setTempSeverities] = useState<string>('');
   const [user, setUser] = useState<User | null>(null);
   const [deletingService, setDeletingService] = useState<Service | null>(null);
   const [confirmName, setConfirmName] = useState('');
@@ -75,6 +77,18 @@ export const ServicesPage: React.FC = () => {
         await updateService(token, serviceId, { retention_days: days });
       }
       setEditingRetention(null);
+      fetchServices();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleUpdateSeverities = async (serviceId: string) => {
+    if (!token) return;
+    try {
+      const severitiesArray = tempSeverities.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+      await updateService(token, serviceId, { custom_severities: severitiesArray });
+      setEditingSeverities(null);
       fetchServices();
     } catch (err: any) {
       setError(err.message);
@@ -254,6 +268,49 @@ export const ServicesPage: React.FC = () => {
                                 {s.retention_minutes && s.retention_minutes % 1440 !== 0 
                                   ? `${s.retention_minutes}M Retention` 
                                   : `${s.retention_days}D Retention`}
+                              </span>
+                              <Edit2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+                            </div>
+                          )}
+                          
+                          {/* Custom Severities */}
+                          {editingSeverities === s._id ? (
+                            <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2 py-0.5 border border-border/50 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">Levels:</span>
+                              <input 
+                                type="text" 
+                                placeholder="CRITICAL,TRACE"
+                                className="w-24 bg-transparent text-[10px] font-bold outline-none text-white font-mono"
+                                value={tempSeverities}
+                                onChange={(e) => setTempSeverities(e.target.value)}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleUpdateSeverities(s._id);
+                                  }
+                                }}
+                              />
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateSeverities(s._id);
+                                }}
+                                className="p-0.5 hover:text-green-500 transition-colors cursor-pointer"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              className="flex items-center gap-1 px-2 py-0.5 bg-secondary/20 rounded-full hover:bg-secondary/40 border border-secondary/20 transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingSeverities(s._id);
+                                setTempSeverities(s.custom_severities?.join(',') || '');
+                              }}
+                            >
+                              <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-tight text-secondary-foreground/80">
+                                {s.custom_severities?.length ? `${s.custom_severities.length} Custom Levels` : '+ Add Levels'}
                               </span>
                               <Edit2 className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
                             </div>
