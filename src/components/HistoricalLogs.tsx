@@ -356,7 +356,7 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
                   
                   {expandedLog === i && (
                     <div className="px-6 md:px-12 pb-4 md:pb-6 animate-in slide-in-from-top-2 duration-200">
-                      <div className="mt-2 md:mt-3 text-[9px] md:text-[11px] text-blue-400/70 bg-blue-500/5 p-3 md:p-4 rounded-xl md:rounded-2xl border border-blue-500/10 overflow-x-auto max-h-[250px] md:max-h-[300px] font-mono">
+                      <div className="mt-2 md:mt-3 text-[9px] md:text-[11px] text-zinc-300 bg-zinc-950/80 p-3 md:p-4 rounded-xl md:rounded-2xl border border-zinc-900 overflow-x-auto max-h-[250px] md:max-h-[300px] font-mono">
                         <pre>{JSON.stringify(log.metadata, null, 2)}</pre>
                       </div>
                     </div>
