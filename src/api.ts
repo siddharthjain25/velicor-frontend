@@ -136,7 +136,7 @@ export async function createService(token: string, name: string) {
   return response.json();
 }
 
-export async function updateService(token: string, serviceId: string, data: { retention_days?: number; retention_minutes?: number }) {
+export async function updateService(token: string, serviceId: string, data: { retention_days?: number; retention_minutes?: number; custom_severities?: string[] }) {
   const response = await fetch(`${BASE_URL}/api/v1/services/${serviceId}`, {
     method: 'PATCH',
     headers: { 
