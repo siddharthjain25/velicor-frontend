@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { searchLogs, type LogEntry } from '../api';
+import { searchLogs, searchArchiveLogs, type LogEntry } from '../api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
-import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull, Download } from 'lucide-react';
+import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull, Download, Archive } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { useCustomDialog } from '../context/DialogContext';
 
@@ -20,6 +20,7 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
   const customDialog = useCustomDialog();
   
   // Filters
+  const [storageMode, setStorageMode] = useState<'hot' | 'cold'>('hot');
   const [level, setLevel] = useState('');
   const [statusCode, setStatusCode] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -44,13 +45,29 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const results = await searchLogs(apiKey, {
+      const payload = {
         level,
         status_code: statusCode ? parseInt(statusCode) : undefined,
         keyword,
         start_ts: startTs ? new Date(startTs).toISOString() : undefined,
         end_ts: endTs ? new Date(endTs).toISOString() : undefined,
-      });
+      };
+
+      let results;
+      if (storageMode === 'cold') {
+        if (!payload.start_ts || !payload.end_ts) {
+           await customDialog.alert({ title: "Validation Error", description: "Start Time and End Time are strictly required for Cold Storage (S3) querying." });
+           setLoading(false);
+           return;
+        }
+        results = await searchArchiveLogs(apiKey, {
+          ...payload,
+          start_ts: payload.start_ts,
+          end_ts: payload.end_ts,
+        });
+      } else {
+        results = await searchLogs(apiKey, payload);
+      }
       setLogs(results);
     } catch (err) {
       console.error(err);
@@ -159,9 +176,19 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
               </CardTitle>
               <CardDescription className="text-xs md:text-sm">Targeting: <code className="text-primary font-bold">logs_{serviceName}</code></CardDescription>
             </div>
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive w-full sm:w-auto">
-              Clear All
-            </Button>
+            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+              <div className="flex items-center bg-muted p-1 rounded-full border shrink-0">
+                <Button type="button" variant={storageMode === 'hot' ? 'secondary' : 'ghost'} size="sm" onClick={() => setStorageMode('hot')} className="rounded-full text-[10px] h-7 px-3 transition-all">
+                  <Database className="w-3 h-3 mr-1" /> Hot (PostgreSQL)
+                </Button>
+                <Button type="button" variant={storageMode === 'cold' ? 'secondary' : 'ghost'} size="sm" onClick={() => setStorageMode('cold')} className="rounded-full text-[10px] h-7 px-3 transition-all">
+                  <Archive className="w-3 h-3 mr-1" /> Cold (S3 / DuckDB)
+                </Button>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive shrink-0">
+                Clear All
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6 px-4 md:px-6">

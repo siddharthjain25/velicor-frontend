@@ -265,6 +265,33 @@ export async function searchLogs(apiKey: string, filters: {
   return response.json();
 }
 
+export async function searchArchiveLogs(apiKey: string, filters: {
+  start_ts: string;
+  end_ts: string;
+  level?: string;
+  status_code?: number;
+  keyword?: string;
+  limit?: number;
+}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      params.append(key, value.toString());
+    }
+  });
+
+  const response = await fetch(`${BASE_URL}/api/v1/search/archive?${params.toString()}`, {
+    headers: { 'x-api-key': apiKey },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Archive search failed');
+  }
+
+  return response.json();
+}
+
 export async function setup2FA(token: string) {
   const response = await fetch(`${BASE_URL}/api/v1/auth/2fa/setup`, {
     method: 'POST',
