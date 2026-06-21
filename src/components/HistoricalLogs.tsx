@@ -177,12 +177,24 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
               <CardDescription className="text-xs md:text-sm">Targeting: <code className="text-primary font-bold">logs_{serviceName}</code></CardDescription>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
-              <div className="flex items-center bg-muted p-1 rounded-full border shrink-0">
-                <Button type="button" variant={storageMode === 'hot' ? 'secondary' : 'ghost'} size="sm" onClick={() => setStorageMode('hot')} className="rounded-full text-[10px] h-7 px-3 transition-all">
-                  <Database className="w-3 h-3 mr-1" /> Hot (PostgreSQL)
+              <div className="flex items-center bg-muted/60 p-1.5 rounded-full border border-border/50 shrink-0 shadow-inner">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setStorageMode('hot')} 
+                  className={`rounded-full text-[11px] font-bold h-7 px-4 transition-all duration-300 ${storageMode === 'hot' ? 'bg-background shadow-sm text-primary ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+                >
+                  <Database className="w-3.5 h-3.5 mr-1.5" /> Hot Storage
                 </Button>
-                <Button type="button" variant={storageMode === 'cold' ? 'secondary' : 'ghost'} size="sm" onClick={() => setStorageMode('cold')} className="rounded-full text-[10px] h-7 px-3 transition-all">
-                  <Archive className="w-3 h-3 mr-1" /> Cold (S3 / DuckDB)
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setStorageMode('cold')} 
+                  className={`rounded-full text-[11px] font-bold h-7 px-4 transition-all duration-300 ${storageMode === 'cold' ? 'bg-background shadow-sm text-blue-500 ring-1 ring-border' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}
+                >
+                  <Archive className="w-3.5 h-3.5 mr-1.5" /> Cold Archive
                 </Button>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={clearFilters} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive shrink-0">
