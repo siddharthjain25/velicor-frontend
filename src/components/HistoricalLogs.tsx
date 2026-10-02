@@ -3,8 +3,7 @@ import { searchLogs, searchArchiveLogs, type LogEntry } from '../api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
-import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronUp, AlertCircle, Info, Bug, AlertTriangle, Skull, Download, Archive } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { Search, Calendar, Filter, Clock, Hash, Database, ChevronDown, ChevronRight, Download, Archive } from 'lucide-react';
 import { useCustomDialog } from '../context/DialogContext';
 
 interface HistoricalLogsProps {
@@ -86,28 +85,6 @@ export const HistoricalLogs: React.FC<HistoricalLogsProps> = ({ apiKey, serviceN
     setKeyword('');
     setStartTs('');
     setEndTs('');
-  };
-
-  const getBadgeVariant = (level: string) => {
-    switch (level.toUpperCase()) {
-      case 'INFO': return 'info';
-      case 'WARN': return 'warning';
-      case 'ERROR': return 'destructive';
-      case 'FATAL': return 'destructive';
-      case 'DEBUG': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const getLevelIcon = (level: string) => {
-    switch (level.toUpperCase()) {
-      case 'INFO': return <Info className="w-3 h-3" />;
-      case 'WARN': return <AlertTriangle className="w-3 h-3" />;
-      case 'ERROR': return <AlertCircle className="w-3 h-3" />;
-      case 'FATAL': return <Skull className="w-3 h-3" />;
-      case 'DEBUG': return <Bug className="w-3 h-3" />;
-      default: return null;
-    }
   };
 
   const exportJSON = async () => {

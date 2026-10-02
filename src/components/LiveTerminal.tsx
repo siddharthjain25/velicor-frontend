@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Terminal, Trash2, ShieldCheck, Activity, Wifi, WifiOff, Zap, Play, Pause, Search, ChevronRight } from 'lucide-react';
+import { Terminal, Trash2, Activity, Wifi, WifiOff, Zap, Play, Pause, Search, ChevronRight } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { searchLogs } from '../api';
 
@@ -183,17 +183,6 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
       });
     }
     setIsPaused(!isPaused);
-  };
-
-  const getBadgeVariant = (level: string) => {
-    switch (level.toUpperCase()) {
-      case 'INFO': return 'info';
-      case 'WARN': return 'warning';
-      case 'ERROR': return 'destructive';
-      case 'FATAL': return 'destructive';
-      case 'DEBUG': return 'secondary';
-      default: return 'default';
-    }
   };
 
   // Perform client-side filter matching (supports Regex and Substring)
