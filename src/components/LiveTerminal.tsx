@@ -313,95 +313,87 @@ export const LiveTerminal: React.FC<LiveTerminalProps> = ({ filterService, apiKe
           {filteredLogs.map((log, i) => {
             const logId = log._client_id || `${log.timestamp}-${i}`;
             const isExpanded = expandedLogId === logId;
+            const isoTime = log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString();
             
-            let levelBorderClass = "border-l-3 border-l-zinc-700/30";
+            let levelBadgeColor = "bg-blue-500/10 text-blue-400 border-blue-500/20";
             if (log.level) {
               const lvl = log.level.toUpperCase();
               if (lvl.includes("ERR") || lvl.includes("FAIL") || lvl.includes("CRIT") || lvl.includes("FATAL")) {
-                levelBorderClass = "border-l-3 border-l-red-500 bg-red-950/[0.07] hover:bg-red-950/[0.12]";
+                levelBadgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
               } else if (lvl.includes("WARN")) {
-                levelBorderClass = "border-l-3 border-l-amber-500 bg-amber-950/[0.07] hover:bg-amber-950/[0.12]";
-              } else if (lvl.includes("INFO")) {
-                levelBorderClass = "border-l-3 border-l-blue-500 bg-blue-950/[0.04] hover:bg-blue-950/[0.08]";
+                levelBadgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
               } else if (lvl.includes("DEB")) {
-                levelBorderClass = "border-l-3 border-l-zinc-500/50 bg-zinc-900/[0.04] hover:bg-zinc-900/[0.08]";
+                levelBadgeColor = "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
               }
             }
             
             return (
-              <div key={logId} className={`border border-transparent hover:border-zinc-800/80 rounded transition-all overflow-hidden mb-1.5 ${levelBorderClass}`}>
+              <div key={logId} className="border border-zinc-800/60 bg-[#0f1117] hover:bg-[#151923] rounded-sm transition-all overflow-hidden mb-1 font-mono text-[11px] leading-relaxed">
                 <div 
                   onClick={() => toggleExpand(logId)}
-                  className="flex flex-col xs:flex-row gap-2 xs:gap-4 p-2 rounded transition-colors group relative items-start xs:items-center cursor-pointer select-none"
+                  className="flex items-start gap-2.5 px-3 py-2 cursor-pointer select-none group"
                 >
-                  <div className="flex items-center gap-2.5 flex-shrink-0">
-                    <span className="text-muted-foreground/30 group-hover:text-primary transition-colors">
-                      <ChevronRight className={`w-3.5 h-3.5 transform transition-transform ${isExpanded ? 'rotate-90 text-primary' : ''}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 mt-0.5 text-zinc-500 group-hover:text-zinc-300 transform transition-transform ${isExpanded ? 'rotate-90 text-amber-400' : ''}`} />
+                  
+                  <span className="text-amber-500/90 font-medium shrink-0">
+                    {isoTime}
+                  </span>
+
+                  <span className={`px-1.5 py-0.2 text-[9px] uppercase font-bold border rounded-xs shrink-0 ${levelBadgeColor}`}>
+                    {log.level || 'INFO'}
+                  </span>
+
+                  {log.service_name && (
+                    <span className="text-emerald-400/80 bg-emerald-950/30 px-1.5 py-0.2 text-[9px] rounded-xs shrink-0 border border-emerald-500/20">
+                      [{log.service_name}]
                     </span>
-                    <span className="text-muted-foreground/40 select-none text-[9px] md:text-[10px] font-semibold w-12">
-                      {new Date(log.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </span>
-                    <span className="min-w-[50px] md:min-w-[55px] inline-block">
-                      <Badge variant={getBadgeVariant(log.level)} className="text-[8.5px] uppercase font-black px-1.5 py-0.5 border-none shadow-none leading-none select-none">
-                        {log.level}
-                      </Badge>
-                    </span>
-                  </div>
-                  <span className="text-gray-300 flex-grow break-all leading-relaxed pr-8">{log.message}</span>
+                  )}
+
+                  <span className="text-zinc-200 flex-grow break-all pr-2">{log.message}</span>
+                  
                   {log.metadata && Object.keys(log.metadata).length > 0 && (
-                    <div className="flex items-center gap-1 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span className="text-[8.5px] font-bold hidden sm:inline tracking-wider">META</span>
-                    </div>
+                    <span className="text-[9px] text-zinc-500 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-xs shrink-0">
+                      {Object.keys(log.metadata).length} fields
+                    </span>
                   )}
                 </div>
 
                 {isExpanded && (
-                  <div className="p-3.5 bg-[#0d0d0d] border-t border-zinc-900/60 text-gray-400 text-[10px] md:text-xs space-y-3.5 animate-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {/* Left: Detailed Metadata info */}
-                      <div className="space-y-2.5">
-                        <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider">Log Parameters</div>
-                        <div className="space-y-1.5 font-mono">
-                          <div className="flex items-start">
-                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Timestamp:</span>
-                            <span className="text-gray-300 break-all">{log.timestamp}</span>
-                          </div>
-                          <div className="flex items-start">
-                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Level:</span>
-                            <span className="text-gray-300 break-all uppercase font-bold">{log.level}</span>
-                          </div>
-                          <div className="flex items-start">
-                            <span className="text-muted-foreground/50 w-24 flex-shrink-0">Service:</span>
-                            <span className="text-gray-300 break-all">{log.service_name || 'unknown'}</span>
-                          </div>
-                          {log.status_code !== undefined && log.status_code !== null && (
-                            <div className="flex items-start">
-                              <span className="text-muted-foreground/50 w-24 flex-shrink-0">Status Code:</span>
-                              <span className={`font-bold ${log.status_code >= 400 ? 'text-red-400' : 'text-emerald-400'}`}>{log.status_code}</span>
-                            </div>
-                          )}
-                        </div>
+                  <div className="p-3 bg-[#0a0c10] border-t border-zinc-800/60 text-zinc-300 space-y-2 animate-in slide-in-from-top-1 duration-150">
+                    <div className="text-[9px] uppercase font-bold text-amber-500 tracking-wider">CloudWatch Log Insights Fields</div>
+                    <div className="bg-[#12151e] border border-zinc-800/80 rounded-sm p-2.5 space-y-1 text-[10.5px]">
+                      <div className="flex items-start">
+                        <span className="text-cyan-400 font-medium w-32 shrink-0">@timestamp</span>
+                        <span className="text-zinc-200">{isoTime}</span>
                       </div>
-
-                      {/* Right: Raw JSON payload with copy button */}
-                      <div className="space-y-2">
-                        <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider flex items-center justify-between">
-                          <span>Raw JSON Payload</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigator.clipboard.writeText(JSON.stringify(log, null, 2));
-                            }}
-                            className="text-[9px] text-primary hover:text-primary-hover hover:underline font-bold cursor-pointer"
-                          >
-                            Copy Payload
-                          </button>
-                        </div>
-                        <pre className="p-3 rounded bg-zinc-950/80 border border-zinc-900 text-[9.5px] leading-relaxed text-zinc-300 max-h-[160px] overflow-y-auto font-mono scrollbar-thin select-text">
-                          {JSON.stringify(log, null, 2)}
-                        </pre>
+                      <div className="flex items-start">
+                        <span className="text-cyan-400 font-medium w-32 shrink-0">@message</span>
+                        <span className="text-zinc-200 break-all">{log.message}</span>
                       </div>
+                      <div className="flex items-start">
+                        <span className="text-cyan-400 font-medium w-32 shrink-0">@logGroup</span>
+                        <span className="text-zinc-200">/velicor/{log.service_name || 'default'}</span>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="text-cyan-400 font-medium w-32 shrink-0">@logStream</span>
+                        <span className="text-zinc-200">{log.service_name || 'default'}_stream</span>
+                      </div>
+                      <div className="flex items-start">
+                        <span className="text-cyan-400 font-medium w-32 shrink-0">@level</span>
+                        <span className="text-zinc-200">{log.level}</span>
+                      </div>
+                      {log.status_code !== undefined && log.status_code !== null && (
+                        <div className="flex items-start">
+                          <span className="text-cyan-400 font-medium w-32 shrink-0">@statusCode</span>
+                          <span className={log.status_code >= 400 ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>{log.status_code}</span>
+                        </div>
+                      )}
+                      {log.metadata && typeof log.metadata === 'object' && Object.entries(log.metadata).map(([k, v]) => (
+                        <div key={k} className="flex items-start">
+                          <span className="text-cyan-400 font-medium w-32 shrink-0">{k}</span>
+                          <span className="text-zinc-300 break-all">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
